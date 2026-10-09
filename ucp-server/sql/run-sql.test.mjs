@@ -99,8 +99,8 @@ test('从其他目录执行：先备份后执行，保留快照和日志，使�
   const { result, output, events, runs, delivery } = runCase(t, 'success');
   assert.equal(result.status, 0, output);
   assert.deepEqual(events, ['connect', 'backup', 'check-backup', 'execute']);
-  assert.match(output, /os-newserver0916/);
-  assert.match(output, /aios/);
+  assert.match(output, /ucp-ng/);
+  assert.match(output, /postgres/);
   assert.equal(runs.length, 1);
   assert.equal(readFileSync(path.join(runs[0], 'applied.sql'), 'utf8'), 'SELECT 1;\n');
   assert.ok(existsSync(path.join(runs[0], 'database.dump')));

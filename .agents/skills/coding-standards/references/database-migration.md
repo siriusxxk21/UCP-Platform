@@ -2,6 +2,14 @@
 
 配套主技能见 [../SKILL.md](../SKILL.md)。此文件包含迁移与工具执行规范；工程路径以仓库根目录为基准。
 
+## 当前项目基线（2026-10-09）
+
+- 唯一开发数据库：本地 `ucp-ng`；继续通过启动模块 `application-os.yml` 装配。
+- 经用户授权，以当前库重新建立 `V001__ucp_ng_baseline.sql`，当前库历史标记为 BASELINE 1，旧 V001–V079 与发布升级包退役，后续增量从 V002 起。
+- V001 仅保存 public 结构；新空库可执行它建立结构，但完整可用环境必须恢复包含业务数据、菜单、账号及配置的完整快照。重建后快照位于忽略目录 `ucp-nocode/.work/baseline-20261009/ucp-ng-baseline.dump`，恢复说明见 `sql/README.md`。
+- 不自动把其他非空旧库标记为新基线，不自动 repair；首次切换必须清理并重建工具，防止 classpath 残留旧 SQL。
+- 下面的校验和锁定规则继续适用于新 V001 及之后的已执行版本；本次重建不是通用豁免。
+
 ## 目录与命名
 
 - 唯一手写 SQL 目录为 `ucp-server/sql/`；PostgreSQL 增量放 `sql/postgresql/migrations/`。

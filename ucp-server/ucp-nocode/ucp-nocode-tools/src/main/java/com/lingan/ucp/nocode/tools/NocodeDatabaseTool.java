@@ -27,7 +27,8 @@ public class NocodeDatabaseTool {
                 .schemas("public")
                 .table("nocode_schema_history")
                 .locations("classpath:db/nocode")
-                .baselineVersion("0")
+                .baselineVersion("1")
+                .baselineDescription("ucp-ng baseline 20261009")
                 .baselineOnMigrate(false)
                 .validateMigrationNaming(true)
                 .validateOnMigrate(true)
@@ -70,30 +71,7 @@ public class NocodeDatabaseTool {
             }
             case "migrate" -> {
                 Flyway flyway = flyway();
-                if (!Boolean.TRUE.equals(
-                        jdbc.queryForObject(
-                                "SELECT to_regclass('public.nocode_schema_history') IS NOT"
-                                        + " NULL",
-                                Boolean.class))) {
-                    Long existing =
-                            jdbc.queryForObject(
-                                    """
-SELECT count(*) FROM information_schema.tables WHERE table_schema='public'
-AND table_name IN ('nocode_object','nocode_object_version','nocode_object_table','nocode_field','nocode_operation_log',
-                  'lc_object','lc_object_version','lc_object_table','lc_field','aud_operation_log')
-""",
-                                    Long.class);
-                    if (existing != null && existing > 0)
-                        throw new IllegalStateException(
-                                "Existing nocode tables without migration history");
-                    if (!Boolean.TRUE.equals(
-                            jdbc.queryForObject(
-                                    "SELECT to_regclass('public.system_users') IS NOT NULL AND"
-                                            + " to_regclass('public.system_menu') IS NOT NULL",
-                                    Boolean.class)))
-                        throw new IllegalStateException("Current OS development database required");
-                    flyway.baseline();
-                }
+                // 空库执行完整 V001 结构基线；已有库必须携带匹配历史，禁止隐式跳过旧库校验。
                 var result = flyway.migrate();
                 flyway.validate();
                 System.out.println(

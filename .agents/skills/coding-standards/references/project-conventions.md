@@ -27,6 +27,8 @@
 
 ## 数据库与交付
 
+- 当前项目唯一开发数据库为本地 `ucp-ng`。2026-10-09 按用户指令完成一次基线重建：当前库为 BASELINE 1，`V001__ucp_ng_baseline.sql` 保存当前 public 结构，旧 V001–V079 与升级包退役，之后从 V002 追加。该次授权不代表日后可以任意重写已执行迁移。完整业务数据快照保留在忽略目录 `ucp-server/ucp-nocode/.work/baseline-20261009/`，复制当前环境使用重建后的 `ucp-ng-baseline.dump`，详见 `ucp-server/sql/README.md`。
+
 - 手写平台部署 SQL 的唯一目录为 `ucp-server/sql/`，执行规范见 [database-migration.md](database-migration.md)。PostgreSQL 增量置于 `postgresql/migrations/VNNN__description.sql`，沿用现有 Flyway 与 `nocode_schema_history`；所有模块共用连续编号。已执行 SQL 的文件名、字节和锁清单摘要不可改写，修复追加新版本，不另建迁移器或复制模块内 SQL。手工修复与其他数据库方言放非自动扫描目录。
 - SQL 交付先运行 `node ucp-server/sql/check-migrations.mjs`，重新构建工具后 info／migrate／verify；禁止使用旧构建产物执行新迁移。动态业务对象发布及普通业务数据不从 public.sql 机械转换为平台升级；全量快照仍用于恢复，不作为日常增量入口。
 - 后端聚合模块为 `ucp-server/ucp-nocode`，子模块使用 `ucp-nocode-*`；Java 包、权限码与前端业务路由仍使用 `nocode` 领域名。

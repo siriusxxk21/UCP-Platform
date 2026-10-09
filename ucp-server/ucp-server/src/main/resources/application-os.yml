@@ -12,9 +12,9 @@ spring:
         connection-timeout: 20000
       datasource:
         master:
-          url: jdbc:postgresql://127.0.0.1:5432/devops
+          url: jdbc:postgresql://127.0.0.1:5432/ucp-ng
           username: ${DB_USERNAME:postgres}
-          password: ${DB_PASSWORD:}
+          password: ${DB_PASSWORD:postgres}
           driver-class-name: org.postgresql.Driver
 
 

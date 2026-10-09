@@ -638,104 +638,18 @@ class ObjectDraftIntegrationTest extends NocodeIntegrationSupport {
     void migrationReplayIsNoopAndDdlFailureRollsBackInCurrentDatabase() throws Exception {
         assertThat(databaseTool.flyway().migrate().migrationsExecuted).isZero();
         String schema = "nocode_b1_" + UUID.randomUUID().toString().replace("-", "");
-        String renameSql =
-                new String(
-                        Objects.requireNonNull(
-                                        getClass()
-                                                .getResourceAsStream(
-                                                        "/db/nocode/V003__unify_nocode_namespace.sql"))
-                                .readAllBytes(),
-                        java.nio.charset.StandardCharsets.UTF_8);
-        String sql =
-                new String(
-                        Objects.requireNonNull(
-                                        getClass()
-                                                .getResourceAsStream(
-                                                        "/db/nocode/V001__object_drafts.sql"))
-                                .readAllBytes(),
-                        java.nio.charset.StandardCharsets.UTF_8);
         assertThatThrownBy(
                         () ->
                                 new TransactionTemplate(manager)
                                         .executeWithoutResult(
                                                 status -> {
                                                     jdbc.execute("CREATE SCHEMA " + schema);
+                                                    // 新基线已包含旧升级结果，只验证新 DDL 的事务回滚。
                                                     jdbc.execute(
-                                                            sql.replace("public.", schema + "."));
-                                                    // 在当前开发库的回滚事务中重放 V001 -> V003，验证既有数据迁移。
-                                                    jdbc.execute(
-                                                            "INSERT INTO "
+                                                            "CREATE TABLE "
                                                                     + schema
-                                                                    + ".lc_object"
-                                                                    + " (id,object_code,object_name,physical_name_seed,title_field_stable_id,created_by,updated_by)"
-                                                                    + " VALUES"
-                                                                    + " (1,'legacy','迁移验证','seed',11,1,1)");
-                                                    jdbc.execute(
-                                                            "INSERT INTO "
-                                                                    + schema
-                                                                    + ".lc_object_version"
-                                                                    + " (id,object_id,version_no,schema_json,schema_checksum,created_by)"
-                                                                    + " VALUES"
-                                                                    + " (2,1,1,'{\"tableName\":\"b_legacy\",\"fields\":[]}',repeat('a',64),1)");
-                                                    jdbc.execute(
-                                                            "INSERT INTO "
-                                                                    + schema
-                                                                    + ".lc_object_table"
-                                                                    + " (id,object_version_id,stable_table_id,table_code,table_name,table_role)"
-                                                                    + " VALUES"
-                                                                    + " (3,2,12,'main','b_legacy','MAIN')");
-                                                    jdbc.execute(
-                                                            renameSql
-                                                                    .replace(
-                                                                            "public.", schema + ".")
-                                                                    .replace(
-                                                                            "'public'",
-                                                                            "'" + schema + "'"));
-                                                    assertThat(
-                                                                    jdbc.queryForObject(
-                                                                            "SELECT table_name FROM"
-                                                                                    + " "
-                                                                                    + schema
-                                                                                    + ".nocode_object_table"
-                                                                                    + " WHERE"
-                                                                                    + " stable_table_id=12",
-                                                                            String.class))
-                                                            .isEqualTo("nocode_data_legacy");
-                                                    assertThat(
-                                                                    jdbc.queryForObject(
-                                                                            "SELECT"
-                                                                                + " schema_json->>'tableName'"
-                                                                                + " FROM "
-                                                                                    + schema
-                                                                                    + ".nocode_object_version"
-                                                                                    + " WHERE id=2",
-                                                                            String.class))
-                                                            .isEqualTo("nocode_data_legacy");
-                                                    assertThat(
-                                                                    jdbc.queryForObject(
-                                                                            "SELECT lock_version"
-                                                                                    + " FROM "
-                                                                                    + schema
-                                                                                    + ".nocode_object"
-                                                                                    + " WHERE id=1",
-                                                                            Integer.class))
-                                                            .isEqualTo(1);
-                                                    assertThat(
-                                                                    jdbc.queryForObject(
-                                                                            "SELECT to_regclass(?)"
-                                                                                    + " IS NULL",
-                                                                            Boolean.class,
-                                                                            schema + ".lc_object"))
-                                                            .isTrue();
-                                                    assertThat(
-                                                                    jdbc.queryForObject(
-                                                                            "SELECT count(*) FROM"
-                                                                                + " information_schema.tables"
-                                                                                + " WHERE"
-                                                                                + " table_schema=?",
-                                                                            Integer.class,
-                                                                            schema))
-                                                            .isEqualTo(5);
+                                                                    + ".baseline_rollback (id"
+                                                                    + " bigint PRIMARY KEY)");
                                                     throw new IllegalStateException(
                                                             "Intentional migration rollback");
                                                 }))

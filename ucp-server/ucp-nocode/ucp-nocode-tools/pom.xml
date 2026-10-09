@@ -60,7 +60,7 @@
                     <exclude>db/nocode/**</exclude>
                 </excludes>
             </resource>
-            <!-- SQL 唯一源在服务端 sql；保留原 classpath，迁移版本和校验和不变。 -->
+            <!-- SQL 唯一源在服务端 sql；沿用原 classpath，V001 为当前 UCP-NG 结构基线。 -->
             <resource>
                 <directory>${project.basedir}/../../sql/postgresql/migrations</directory>
                 <targetPath>db/nocode</targetPath>

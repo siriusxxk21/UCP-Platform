@@ -94,6 +94,8 @@ ucp-nocode-<模块>/src/main/resources/mapper/nocode/XxxMapper.xml    # SQL 唯�
 
 ## 数据库迁移速查
 
+- 当前项目数据库为本地 `ucp-ng`。2026-10-09 经用户明确授权，以当前库重新建立 `V001__ucp_ng_baseline.sql`，旧 V001–V079 已退役；后续增量从 V002 开始。当前库标记为 Flyway BASELINE 1，禁止再次重置或重放旧版本。结构基线不含数据，复制完整环境须恢复本地完整快照，见 `ucp-server/sql/README.md`。
+
 - 唯一目录 `ucp-server/sql/`；增量放 `sql/postgresql/migrations/`，命名 `VNNN__小写蛇形描述.sql`，从 V001 全局连续递增（取号前以目录实际最大编号为准）。
 - 表前缀：平台元数据 `nocode_`，新生成业务主表/明细/关联表 `biz_`；底座、Flowable 与纳管旧表保留原名。
 - 迁移历史 `public.nocode_schema_history`；不启用 Flyway clean、不自动 repair、不随服务启动执行迁移。

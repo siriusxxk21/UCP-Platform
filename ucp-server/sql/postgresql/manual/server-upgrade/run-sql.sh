@@ -20,11 +20,11 @@ esac
 [ -f "$SQL_FILE" ] && [ -r "$SQL_FILE" ] && [ -s "$SQL_FILE" ] \
     || fail "SQL 不存在、不可读或为空：$SQL_FILE"
 
-# 已按本次线上配置填写；需要用于其他环境时可通过同名环境变量覆盖。
+# 默认当前项目本地库；其他环境须显式覆盖连接环境变量。
 : "${PGHOST:=127.0.0.1}"
 : "${PGPORT:=5432}"
-: "${PGDATABASE:=os-newserver0916}"
-: "${PGUSER:=aios}"
+: "${PGDATABASE:=ucp-ng}"
+: "${PGUSER:=postgres}"
 : "${PGCONNECT_TIMEOUT:=10}"
 PGAPPNAME=os-manual-sql-release
 export PGHOST PGPORT PGDATABASE PGUSER PGCONNECT_TIMEOUT PGAPPNAME
