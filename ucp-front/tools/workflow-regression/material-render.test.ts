@@ -4,7 +4,7 @@ import Antd from 'ant-design-vue'
 import { useFlowMaterials } from '@/views/bpm/processInstance/detail/use-flow-materials'
 import MaterialFormView from '@/views/bpm/processInstance/detail/MaterialFormView.vue'
 import FlowMaterialCard from '@/views/bpm/processInstance/detail/FlowMaterialCard.vue'
-import { reviewItems, reviewMaterial } from '../workflow-workbench-preview/review-fixtures'
+import { reviewItems, reviewMaterial } from './fixtures/review-fixtures'
 vi.mock('@/utils/request', () => ({ default: { get: vi.fn(), post: vi.fn() } }))
 vi.mock('@/stores/user', () => ({ useUserStore: () => ({ user: {}, permissions: [] }) }))
 const dispose: (() => void)[] = []

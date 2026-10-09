@@ -3,7 +3,7 @@ import {
   flowNodeStates,
   prepareBpmnView
 } from '@/views/bpm/components/bpmn-process-designer/package/designer/bpmn-view'
-import { legacyXml } from '../workflow-workbench-preview/fixtures'
+import { legacyXml } from './fixtures/fixtures'
 
 describe('已部署流程只读视图', () => {
   it('旧模型无 DI 时生成临时图形，保留原节点与连线', async () => {

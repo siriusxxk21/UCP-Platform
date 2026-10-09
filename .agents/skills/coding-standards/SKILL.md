@@ -124,7 +124,9 @@ pnpm run test:nocode       # vitest 单测
 node tools/nocode-e2e/verify.mjs   # 真实浏览器 E2E（要求 5173/8080 已启动）
 ```
 
-其他可复用脚本（`verify-http.ps1`、`verify-application.ps1`、`start-server.ps1`、`prepare-*-demo.ps1` 等）位于 `ucp-server/ucp-nocode/`；按实际脚本参数与本次范围选择，不是每轮必须全部运行。
+必要开发工具保留在 `ucp-server/ucp-nocode/`：`format.ps1`（格式化）、`run.ps1`（数据库工具）、`start-server.ps1`（Windows 服务启动）、`test.ps1`（专项集成测试）。历史 `prepare-*` 演示初始化与独立 PowerShell 手工验收脚本已清理，不再作为验证入口。
+
+前端保留 `tools/*-regression/*.test.ts`、对应 Vitest 配置及正式 E2E 入口依赖；流程测试共享夹具位于 `tools/workflow-regression/fixtures/`。历史体验数据初始化、独立预览工程和组件探针不作为正式测试保留；新增临时复验脚本应在验收完成后删除，可复用的断言优先纳入现有测试入口。
 
 ## 交付检查清单
 
