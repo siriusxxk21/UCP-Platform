@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.richuang.os.nocode.report.dal.mapper.ReportDashboardPreferenceMapper">
+    <select id="page" resultType="com.richuang.os.nocode.report.dal.dataobject.ReportDashboardDO" useCache="false" flushCache="true">
+        SELECT d.* FROM public.nocode_report_dashboard d
+        JOIN public.nocode_report_dashboard_version v ON v.dashboard_id=d.id AND v.version_no=d.published_version AND v.deleted=0
+        LEFT JOIN public.nocode_report_preference p ON p.dashboard_id=d.id AND p.user_id=#{actor} AND p.deleted=0
+        WHERE d.deleted=0 AND d.status='ACTIVE' AND d.published_version IS NOT NULL
+            AND (d.owner_id=#{actor} OR EXISTS (
+                SELECT 1 FROM public.nocode_report_resource_acl acl,
+                    LATERAL jsonb_array_elements(acl.policy_json) member
+                WHERE acl.resource_kind='DASHBOARD' AND acl.resource_id=d.id AND acl.deleted=0
+                    AND (member-&gt;'actions') @&gt; '["VIEW"]'::jsonb
+                    AND (member-&gt;&gt;'principalKind') || ':' || (member-&gt;&gt;'principalId') IN
+                    <foreach collection="principals" item="principal" open="(" separator="," close=")">#{principal}</foreach>
+            ))
+            AND (v.definition_json-&gt;&gt;'name') ILIKE #{search} ESCAPE '!'
+        <choose>
+            <when test="view == 'FAVORITE'">AND p.favorite=true</when>
+            <when test="view == 'RECENT'">AND p.last_visited_at IS NOT NULL</when>
+        </choose>
+        <choose>
+            <when test="view == 'RECENT'">ORDER BY p.last_visited_at DESC,d.id DESC</when>
+            <when test="view == 'FAVORITE'">ORDER BY p.update_time DESC,d.id DESC</when>
+            <otherwise>ORDER BY d.update_time DESC,d.id DESC</otherwise>
+        </choose>
+    </select>
+    <select id="get" resultType="com.richuang.os.nocode.report.dal.dataobject.ReportDashboardPreferenceDO" useCache="false" flushCache="true">
+        SELECT * FROM public.nocode_report_preference WHERE user_id=#{actor} AND dashboard_id=#{id} AND deleted=0
+    </select>
+    <insert id="favorite">
+        INSERT INTO public.nocode_report_preference(user_id,dashboard_id,favorite,creator,updater)
+        VALUES(#{actor},#{id},#{favorite},CAST(#{actor} AS text),CAST(#{actor} AS text))
+        ON CONFLICT(user_id,dashboard_id) DO UPDATE SET favorite=EXCLUDED.favorite,deleted=0,
+            updater=EXCLUDED.updater,
+            update_time=CASE WHEN nocode_report_preference.favorite IS DISTINCT FROM EXCLUDED.favorite
+                OR nocode_report_preference.deleted!=0 THEN clock_timestamp() ELSE nocode_report_preference.update_time END
+    </insert>
+    <insert id="visit">
+        INSERT INTO public.nocode_report_preference(user_id,dashboard_id,last_visited_at,creator,updater)
+        VALUES(#{actor},#{id},clock_timestamp(),CAST(#{actor} AS text),CAST(#{actor} AS text))
+        ON CONFLICT(user_id,dashboard_id) DO UPDATE SET last_visited_at=EXCLUDED.last_visited_at,deleted=0,
+            updater=EXCLUDED.updater,update_time=clock_timestamp()
+    </insert>
+</mapper>

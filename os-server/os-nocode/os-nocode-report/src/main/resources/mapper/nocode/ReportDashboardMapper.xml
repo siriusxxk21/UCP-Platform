@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.richuang.os.nocode.report.dal.mapper.ReportDashboardMapper">
+ <select id="lock" resultType="com.richuang.os.nocode.report.dal.dataobject.ReportDashboardDO" useCache="false" flushCache="true">
+ SELECT * FROM public.nocode_report_dashboard WHERE id=#{id} AND deleted=0
+ <choose><when test="write">FOR UPDATE</when><otherwise>FOR SHARE</otherwise></choose>
+ </select>
+ <select id="page" resultType="com.richuang.os.nocode.report.dal.dataobject.ReportDashboardDO">
+ SELECT * FROM public.nocode_report_dashboard WHERE deleted=0 AND owner_id=#{actor} AND name ILIKE #{search} ESCAPE '!' ORDER BY update_time DESC,id DESC
+ </select>
+ <select id="availablePage" resultType="com.richuang.os.nocode.report.dal.dataobject.ReportDashboardDO">
+ WITH accessible AS (
+  SELECT d.*, COALESCE(a.actions, ARRAY[]::text[]) AS resource_actions
+  FROM public.nocode_report_dashboard d
+  LEFT JOIN LATERAL (
+   SELECT array_agg(DISTINCT action.value) AS actions
+   FROM public.nocode_report_resource_acl acl,
+    jsonb_array_elements(acl.policy_json) member,
+    jsonb_array_elements_text(member-&gt;'actions') action(value)
+   WHERE acl.resource_kind='DASHBOARD' AND acl.resource_id=d.id AND acl.deleted=0
+    AND (member-&gt;&gt;'principalKind') || ':' || (member-&gt;&gt;'principalId') IN
+    <foreach collection="principals" item="principal" open="(" separator="," close=")">#{principal}</foreach>
+  ) a ON TRUE
+  WHERE d.deleted=0
+ )
+ SELECT d.* FROM accessible d
+ LEFT JOIN public.nocode_report_dashboard_version v ON v.dashboard_id=d.id AND v.version_no=d.published_version AND v.deleted=0
+ WHERE (d.owner_id=#{actor} OR d.resource_actions &amp;&amp; ARRAY['VIEW','EDIT','PUBLISH']::text[]
+  OR (#{manage} AND d.resource_actions &amp;&amp; ARRAY['GRANT','DELETE']::text[]))
+  AND (d.published_version IS NOT NULL OR d.owner_id=#{actor} OR 'EDIT'=ANY(d.resource_actions))
+  AND CASE WHEN d.owner_id=#{actor} OR d.resource_actions &amp;&amp; ARRAY['EDIT','PUBLISH']::text[]
+   THEN d.name ELSE v.definition_json-&gt;&gt;'name' END ILIKE #{search} ESCAPE '!'
+  <if test="status != null">AND d.status=#{status}</if>
+  <if test="folder != null">
+   <choose>
+    <when test="folder == 0">AND d.folder_id IS NULL</when>
+    <otherwise>AND d.folder_id IN (
+     WITH RECURSIVE branch AS (
+      SELECT id FROM public.nocode_report_folder WHERE id=#{folder} AND resource_kind='DASHBOARD' AND deleted=0
+      UNION SELECT f.id FROM public.nocode_report_folder f JOIN branch b ON f.parent_id=b.id
+      WHERE f.deleted=0 AND f.resource_kind='DASHBOARD'
+     ) SELECT id FROM branch
+    )</otherwise>
+   </choose>
+  </if>
+ ORDER BY d.update_time DESC,d.id DESC
+ </select>
+ <insert id="create" useGeneratedKeys="true" keyProperty="row.id" keyColumn="id">
+ INSERT INTO public.nocode_report_dashboard(name,owner_id,folder_id,draft_json,draft_checksum,creator,updater)
+ VALUES(#{row.name},#{row.ownerId},#{row.folderId},CAST(#{row.draftJson} AS jsonb),#{row.draftChecksum},#{actor},#{actor})
+ </insert>
+ <update id="save">
+ UPDATE public.nocode_report_dashboard SET name=#{row.name},draft_json=CAST(#{row.draftJson} AS jsonb),draft_checksum=#{row.draftChecksum},lock_version=lock_version+1,updater=#{actor},update_time=clock_timestamp()
+ WHERE id=#{row.id} AND lock_version=#{expected} AND deleted=0
+ </update>
+ <update id="move">
+ UPDATE public.nocode_report_dashboard SET folder_id=#{folder},lock_version=lock_version+1,updater=#{actor},update_time=clock_timestamp()
+ WHERE id=#{id} AND lock_version=#{expected} AND deleted=0
+ </update>
+ <update id="status">
+ UPDATE public.nocode_report_dashboard SET status=#{status},lock_version=lock_version+1,updater=#{actor},update_time=clock_timestamp()
+ WHERE id=#{id} AND lock_version=#{expected} AND deleted=0
+ </update>
+ <update id="remove">
+ UPDATE public.nocode_report_dashboard SET deleted=1,status='INACTIVE',lock_version=lock_version+1,updater=#{actor},update_time=clock_timestamp()
+ WHERE id=#{id} AND lock_version=#{expected} AND deleted=0
+ </update>
+ <select id="incomingReferences" resultType="long" useCache="false" flushCache="true">
+ SELECT count(*) FROM public.nocode_report_dependency WHERE target_kind='DASHBOARD' AND target_id=#{id} AND deleted=0
+ </select>
+ <update id="clearDependencies">
+ UPDATE public.nocode_report_dependency SET deleted=1,updater=#{actor},update_time=clock_timestamp()
+ WHERE source_kind='DASHBOARD' AND source_id=#{id} AND deleted=0
+ </update>
+ <update id="publish">
+ UPDATE public.nocode_report_dashboard SET published_version=#{number},lock_version=lock_version+1,updater=#{actor},update_time=clock_timestamp() WHERE id=#{id} AND deleted=0
+ </update>
+ <insert id="createVersion" useGeneratedKeys="true" keyProperty="row.id" keyColumn="id">
+ INSERT INTO public.nocode_report_dashboard_version(dashboard_id,version_no,definition_json,checksum,request_id,creator,updater)
+ VALUES(#{row.dashboardId},#{row.versionNo},CAST(#{row.definitionJson} AS jsonb),#{row.checksum},#{row.requestId},#{actor},#{actor})
+ </insert>
+ <select id="version" resultType="com.richuang.os.nocode.report.dal.dataobject.ReportDashboardVersionDO">
+ SELECT * FROM public.nocode_report_dashboard_version WHERE dashboard_id=#{id} AND version_no=#{number} AND deleted=0
+ </select>
+ <select id="versions" resultType="com.richuang.os.nocode.report.dal.dataobject.ReportDashboardVersionDO">
+ SELECT * FROM public.nocode_report_dashboard_version WHERE dashboard_id=#{id} AND deleted=0 ORDER BY version_no DESC
+ </select>
+ <select id="request" resultType="com.richuang.os.nocode.report.dal.dataobject.ReportDashboardVersionDO">
+ SELECT * FROM public.nocode_report_dashboard_version WHERE dashboard_id=#{id} AND creator=#{actor} AND request_id=#{request} AND deleted=0
+ </select>
+ <update id="clearDraftDependencies">
+ UPDATE public.nocode_report_dependency SET deleted=1,updater=#{actor},update_time=clock_timestamp() WHERE source_kind='DASHBOARD' AND source_id=#{id} AND source_stage='DRAFT'
+ </update>
+ <insert id="dependency">
+ INSERT INTO public.nocode_report_dependency(source_kind,source_id,source_stage,source_version,target_kind,target_id,target_version,field_refs_json,creator,updater)
+ VALUES('DASHBOARD',#{id},CASE WHEN #{number}=0 THEN 'DRAFT' ELSE 'VERSION' END,#{number},'DATASET',#{dataset},#{version},CAST(#{fields} AS jsonb),#{actor},#{actor})
+ ON CONFLICT(source_kind,source_id,source_stage,source_version,target_kind,target_id,target_version) DO UPDATE SET field_refs_json=EXCLUDED.field_refs_json,deleted=0,updater=EXCLUDED.updater,update_time=clock_timestamp()
+ </insert>
+</mapper>

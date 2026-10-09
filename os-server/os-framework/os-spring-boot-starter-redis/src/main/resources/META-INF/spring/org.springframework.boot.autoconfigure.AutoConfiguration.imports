@@ -1,0 +1,2 @@
+com.richuang.os.framework.redis.config.OsRedisAutoConfiguration
+com.richuang.os.framework.redis.config.OsCacheAutoConfiguration

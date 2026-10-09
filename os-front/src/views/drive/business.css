@@ -1,0 +1,182 @@
+/**
+ * 网盘「业务文件」浏览页样式
+ *
+ * 页面容器与操作列沿用 drive-list.css，这里只补入口工具条、面包屑与定位高亮。
+ * 目录与文件两张表在页面内滚动，不做表体独立滚动，避免小屏出现双滚动条。
+ */
+.business-page {
+  flex-direction: row;
+  overflow: hidden;
+}
+
+.business-content {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+}
+
+.business-content__context {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: var(--spacing-md);
+}
+
+.business-content__context > span {
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+.business-navigation {
+  display: flex;
+  flex: 0 0 248px;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  min-height: 0;
+  padding: var(--spacing-md);
+  border: 1px solid var(--ant-color-border-secondary, #f0f0f0);
+  border-radius: var(--ant-border-radius-lg, 8px);
+  background: var(--ant-color-bg-container, #fff);
+}
+
+.business-navigation__heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.business-navigation__tree {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+.business-navigation__tree .ant-tree-node-content-wrapper {
+  min-width: 0;
+}
+
+.business-navigation__tree .ant-tree-title {
+  display: inline-block;
+  max-width: 164px;
+  vertical-align: top;
+}
+
+.business-navigation__node {
+  display: flex;
+  flex-direction: column;
+  cursor: pointer;
+  padding: 2px 0;
+}
+
+.business-navigation__label,
+.business-navigation__description {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.business-navigation__description {
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+@media (max-width: 1100px) {
+  .business-page {
+    flex-direction: column;
+  }
+
+  .business-navigation {
+    flex: 0 0 auto;
+    max-height: 240px;
+  }
+
+  .business-navigation__tree .ant-tree-title {
+    max-width: none;
+  }
+
+  .business-head {
+    flex-wrap: wrap;
+  }
+}
+
+.business-toolbar {
+  flex: 0 0 auto;
+}
+
+.business-toolbar .ant-card-body {
+  padding: var(--spacing-md) var(--spacing-lg);
+}
+
+.business-select {
+  width: 200px;
+}
+
+.business-select--version {
+  width: 170px;
+}
+
+.business-head {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-lg);
+  min-height: 22px;
+}
+
+.business-head__meta {
+  color: var(--text-secondary);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.business-crumb-link {
+  color: var(--brand);
+}
+
+.business-empty {
+  padding: var(--spacing-2xl) 0;
+}
+
+.business-table .ant-table-tbody > tr.business-row-highlight > td {
+  background: var(--brand-light);
+}
+
+.business-search-input {
+  width: 260px;
+}
+
+.business-identity {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.business-identity__title {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
+
+.business-identity__title > a {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.business-identity__title .ant-tag {
+  flex-shrink: 0;
+  margin-inline-end: 0;
+}
+
+.business-identity__meta {
+  color: var(--text-secondary);
+  font-size: 12px;
+}

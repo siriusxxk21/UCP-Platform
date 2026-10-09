@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!-- 文件操作任务的状态与重试记录；只登记已知操作，不扫描无归属文件。 -->
+<mapper namespace="com.richuang.os.nocode.runtime.dal.mapper.BizFileTaskMapper">
+
+    <insert id="insertTask"
+            parameterType="com.richuang.os.nocode.runtime.dal.dataobject.BizFileTaskDO"
+            flushCache="true">
+        INSERT INTO public.nocode_biz_file_task
+            (task_type, file_id, payload_json, state, attempts, last_error, creator, updater)
+        VALUES
+            (#{taskType}, #{fileId}, CAST(#{payloadJson} AS jsonb), #{state}, #{attempts},
+             #{lastError}, #{creator}, #{updater})
+    </insert>
+
+    <select id="selectOpenByFile"
+            parameterType="org.apache.ibatis.binding.MapperMethod$ParamMap"
+            resultType="com.richuang.os.nocode.runtime.dal.dataobject.BizFileTaskDO">
+        SELECT id, task_type, file_id, payload_json, state, attempts, last_error,
+               creator, create_time, updater, update_time, deleted
+        FROM public.nocode_biz_file_task
+        WHERE task_type = #{taskType}
+        AND file_id = #{fileId}
+        AND deleted = 0
+        AND state &lt;&gt; 'DONE'
+        ORDER BY id DESC
+        LIMIT 1
+    </select>
+
+    <select id="selectOpenList"
+            parameterType="org.apache.ibatis.binding.MapperMethod$ParamMap"
+            resultType="com.richuang.os.nocode.runtime.dal.dataobject.BizFileTaskDO">
+        SELECT id, task_type, file_id, payload_json, state, attempts, last_error,
+               creator, create_time, updater, update_time, deleted
+        FROM public.nocode_biz_file_task
+        WHERE task_type = #{taskType}
+          AND deleted = 0
+          AND state &lt;&gt; 'DONE'
+          AND NOT EXISTS (
+            SELECT 1
+            FROM public.nocode_biz_upload_session s
+            WHERE s.file_id = nocode_biz_file_task.file_id
+              AND s.deleted = 0
+              AND s.state &lt;&gt; 'CLEANED'
+          )
+        ORDER BY update_time, id
+        LIMIT #{limit}
+    </select>
+
+    <update id="markFailed"
+            parameterType="org.apache.ibatis.binding.MapperMethod$ParamMap"
+            flushCache="true">
+        UPDATE public.nocode_biz_file_task
+        SET state = 'FAILED', attempts = attempts + 1, last_error = #{lastError},
+            updater = #{actor}, update_time = now()
+        WHERE id = #{id}
+        AND deleted = 0
+    </update>
+
+    <update id="markDone"
+            parameterType="org.apache.ibatis.binding.MapperMethod$ParamMap"
+            flushCache="true">
+        UPDATE public.nocode_biz_file_task
+        SET state = 'DONE', updater = #{actor}, update_time = now()
+        WHERE task_type = #{taskType}
+        AND file_id = #{fileId}
+        AND deleted = 0
+        AND state &lt;&gt; 'DONE'
+    </update>
+
+</mapper>

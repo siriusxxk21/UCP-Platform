@@ -1,0 +1,4 @@
+.work/
+!**/src/test/
+!**/src/test/**
+

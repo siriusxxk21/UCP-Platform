@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.richuang.os.nocode.metadata.dal.mapper.SelectionMigrationMapper">
+    <!-- 旧值归一化、按映射展开并去重；first_pos 保持原值及映射目标的先后顺序。 -->
+    <sql id="identifiers">
+        <bind name="_schema" value="@com.richuang.os.nocode.metadata.dal.mapper.SelectionMigrationMapper$Identifiers@quote(schema)"/>
+        <bind name="_table" value="@com.richuang.os.nocode.metadata.dal.mapper.SelectionMigrationMapper$Identifiers@quote(table)"/>
+        <bind name="_column" value="@com.richuang.os.nocode.metadata.dal.mapper.SelectionMigrationMapper$Identifiers@quote(column)"/>
+    </sql>
+
+    <sql id="valuesArray">
+        <choose>
+            <when test="oldMultiple">COALESCE(${_column}::jsonb, '[]'::jsonb)</when>
+            <otherwise>jsonb_build_array(${_column}::text)</otherwise>
+        </choose>
+    </sql>
+
+    <sql id="mapped">
+        (SELECT COALESCE(jsonb_agg(d.value ORDER BY d.first_pos), '[]'::jsonb)
+        FROM (
+        SELECT target.value, min(source.pos * 101 + target.pos) first_pos
+        FROM jsonb_array_elements_text(
+        <include refid="valuesArray"/>
+        ) WITH ORDINALITY source(value, pos)
+        CROSS JOIN LATERAL jsonb_array_elements(CAST(#{mapping} AS jsonb) -&gt; source.value)
+        WITH ORDINALITY target(value, pos)
+        GROUP BY target.value
+        ) d)
+    </sql>
+
+    <select
+        id="values"
+        parameterType="com.richuang.os.nocode.metadata.dal.mapper.SelectionMigrationMapper$Statement"
+        resultType="java.lang.String"
+        useCache="false"
+        flushCache="true">
+        <include refid="identifiers"/>
+        SELECT DISTINCT v.value FROM ${_schema}.${_table}
+        CROSS JOIN LATERAL jsonb_array_elements_text(
+        <choose>
+            <when test="oldMultiple">CASE WHEN jsonb_typeof(${_table}.${_column}::jsonb) = 'array' THEN ${_table}.${_column}::jsonb ELSE '[]'::jsonb END</when>
+            <otherwise>jsonb_build_array(${_table}.${_column}::text)</otherwise>
+        </choose>
+        ) v
+        WHERE ${_table}.${_column} IS NOT NULL ORDER BY v.value LIMIT 1001
+    </select>
+
+    <select
+        id="conflicts"
+        parameterType="com.richuang.os.nocode.metadata.dal.mapper.SelectionMigrationMapper$Statement"
+        resultType="_long">
+        <include refid="identifiers"/>
+        SELECT count(*) FROM ${_schema}.${_table} WHERE
+        <if test="required">${_column} IS NULL OR</if>
+        (${_column} IS NOT NULL AND (
+        jsonb_array_length(
+        <include refid="mapped"/>
+        ) &gt;
+        <choose>
+            <when test="newMultiple">100</when>
+            <otherwise>1</otherwise>
+        </choose>
+        <if test="required">
+            OR jsonb_array_length(
+            <include refid="mapped"/>
+            ) = 0
+        </if>
+        ))
+    </select>
+
+    <update id="toText" parameterType="com.richuang.os.nocode.metadata.dal.mapper.SelectionMigrationMapper$Statement">
+        <include refid="identifiers"/>
+        ALTER TABLE ${_schema}.${_table}
+        ALTER COLUMN ${_column} DROP DEFAULT,
+        ALTER COLUMN ${_column} DROP NOT NULL,
+        ALTER COLUMN ${_column} TYPE text USING ${_column}::text
+    </update>
+
+    <update id="mapValues" parameterType="com.richuang.os.nocode.metadata.dal.mapper.SelectionMigrationMapper$Statement">
+        <include refid="identifiers"/>
+        UPDATE ${_schema}.${_table} SET ${_column} =
+        <include refid="mapped"/>
+        <choose>
+            <when test="newMultiple">::text</when>
+            <otherwise>-&gt;&gt; 0</otherwise>
+        </choose>
+        <if test="audit">, updater = #{actor}, update_time = CURRENT_TIMESTAMP</if>
+        WHERE ${_column} IS NOT NULL
+    </update>
+
+    <update id="toTarget" parameterType="com.richuang.os.nocode.metadata.dal.mapper.SelectionMigrationMapper$Statement">
+        <bind name="_type" value="@com.richuang.os.framework.mybatis.core.metadata.PostgreSqlCommands@type(type)"/>
+        <include refid="identifiers"/>
+        ALTER TABLE ${_schema}.${_table}
+        ALTER COLUMN ${_column} TYPE ${_type} USING ${_column}::${_type}
+        <if test="required">, ALTER COLUMN ${_column} SET NOT NULL</if>
+    </update>
+</mapper>

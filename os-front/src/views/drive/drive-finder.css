@@ -1,0 +1,482 @@
+/**
+ * 网盘文件区（VueFinder）样式适配
+ *
+ * VueFinder 自带 silver 等主题与平台观感差异较大，这里统一做两件事：
+ * 1. 把组件的 --vf-* 变量映射到平台设计令牌，颜色、圆角、行高都随平台主题；
+ * 2. 对菜单栏、工具栏、面包屑、表头、列表行、状态栏做结构级微调，与系统表格保持同一观感。
+ *
+ * 右键菜单、搜索、全屏等弹层由组件传送到 body，选择器必须保持全局，
+ * 因此本文件不使用 scoped，统一以 .vuefinder__themer 为前缀限定作用范围。
+ */
+
+/**
+ * 变量覆盖必须同时命中组件主容器与传送弹层：两者都带 .vuefinder__themer 和 data-theme，
+ * 而组件按 [data-theme=xxx] 声明主题变量，用属性选择器才压得住各套主题。
+ */
+.vuefinder__themer[data-theme] {
+  /* 表面与文字 */
+  --vf-bg-primary: var(--color-bg-container);
+  --vf-bg-secondary: var(--bg-page);
+  --vf-bg-tertiary: var(--neutral-bg);
+  --vf-bg-hover: var(--control-hover-bg);
+  --vf-bg-selected: var(--control-active-bg);
+  --vf-bg-disabled: var(--neutral-bg);
+  --vf-text-primary: var(--text-primary);
+  --vf-text-secondary: var(--text-secondary);
+  --vf-text-tertiary: var(--text-tertiary);
+  --vf-text-disabled: var(--text-placeholder);
+  --vf-text-inverse: #fff;
+
+  /* 边框与主色 */
+  --vf-border-primary: var(--border);
+  --vf-border-secondary: var(--border);
+  --vf-border-focus: var(--brand);
+  --vf-border-error: var(--error);
+  --vf-accent-primary: var(--brand);
+  --vf-accent-secondary: var(--brand-hover);
+  --vf-accent-success: var(--success);
+  --vf-accent-warning: var(--warning);
+  --vf-accent-error: var(--error);
+
+  /* 交互态 */
+  --vf-interactive-hover: var(--control-hover-bg);
+  --vf-interactive-active: var(--control-active-bg);
+  --vf-interactive-focus: var(--brand-light);
+
+  /* 弹层 */
+  --vf-dropdown-bg: var(--color-bg-container);
+  --vf-dropdown-border: var(--border);
+  --vf-dropdown-text: var(--text-primary);
+  --vf-dropdown-hover: var(--control-hover-bg);
+
+  /* 滚动条：与平台内容区滚动条同一灰度 */
+  --vf-scrollbar-handle: #d1d5db;
+  --vf-scrollbar-handle-hover: #9ca3af;
+  --vf-scrollbar-handle-active: #6b7280;
+
+  /* 尺寸变量由组件按 config 写内联样式（虚拟列表的行槽高度也据此计算），
+     覆盖会让内容顶出行槽，统一在 DriveWorkspace 的 config 里调整，此处不声明 */
+
+  /* 组件自带的圆角档位未定义，这里补齐成平台档位 */
+  --radius-md: var(--radius-sm);
+  --radius-lg: var(--radius);
+}
+
+/* ===== 容器 ===== */
+
+/* 外层卡片已提供边框与圆角，去掉组件内层边框，避免双线 */
+.vuefinder__main__relative.vuefinder__main__container {
+  border: 0;
+  border-radius: 0;
+  overflow: hidden;
+}
+
+/* ===== 菜单栏 ===== */
+
+.vuefinder__menubar {
+  height: 36px;
+  border-bottom: 1px solid var(--border);
+  background: #fff;
+}
+
+.vuefinder__menubar__container {
+  height: 100%;
+  padding-inline: var(--spacing-sm);
+}
+
+/* 与平台页签同一语言：文字菜单 + 悬停/展开时下沿品牌色指示条 */
+.vuefinder__menubar__item {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  height: 100%;
+  padding-inline: var(--spacing-md);
+  border-radius: 0;
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.vuefinder__menubar__item:hover,
+.vuefinder__menubar__item--active {
+  background: transparent;
+  color: var(--brand);
+}
+
+.vuefinder__menubar__item:hover::after,
+.vuefinder__menubar__item--active::after {
+  position: absolute;
+  inset-inline: var(--spacing-md);
+  bottom: 0;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--brand);
+  content: '';
+}
+
+.vuefinder__menubar__item--disabled,
+.vuefinder__menubar__item--disabled:hover {
+  color: var(--text-placeholder);
+}
+
+.vuefinder__menubar__item--disabled::after {
+  display: none;
+}
+
+.vuefinder__menubar__label {
+  font-weight: 500;
+}
+
+/* 菜单弹层与平台下拉一致：白底、8px 圆角、弹层阴影 */
+.vuefinder__menubar__dropdown,
+.vuefinder__menubar__dropdown__submenu {
+  padding: var(--spacing-xs);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: #fff;
+  box-shadow: var(--shadow-popup);
+}
+
+.vuefinder__menubar__dropdown__item,
+.vuefinder__context-menu__item {
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-size: 13px;
+}
+
+.vuefinder__menubar__dropdown__item--checked {
+  color: var(--brand);
+  font-weight: 500;
+}
+
+.vuefinder__menubar__dropdown__label {
+  color: var(--text-tertiary);
+  font-size: 12px;
+}
+
+.vuefinder__menubar__dropdown__shortcut {
+  color: var(--text-tertiary);
+  font-size: 12px;
+}
+
+/* 分隔线要覆盖上面菜单项的内边距，否则会被撑成一条粗灰条 */
+.vuefinder__menubar__dropdown__item--separator {
+  height: 1px;
+  margin: 2px var(--spacing-xs);
+  padding: 0;
+  border-radius: 0;
+  background-color: var(--border);
+}
+
+/* ===== 工具栏 ===== */
+
+.vuefinder__toolbar {
+  height: 48px;
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-bottom: 1px solid var(--border);
+  background: #fff;
+}
+
+.vuefinder__toolbar__actions,
+.vuefinder__toolbar__controls {
+  gap: var(--spacing-sm);
+  align-items: center;
+}
+
+/* 图标按钮化：32px 方形按钮，悬停走品牌色，与平台按钮同一套观感 */
+.vuefinder__toolbar__actions > div,
+.vuefinder__toolbar__controls > div {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--control-height);
+  height: var(--control-height);
+  margin-inline: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: #fff;
+  color: var(--text-primary);
+  transition: all 0.2s ease;
+}
+
+.vuefinder__toolbar__actions > div:hover,
+.vuefinder__toolbar__controls > div:hover {
+  border-color: var(--border-hover);
+  background: var(--brand-light);
+  color: var(--brand);
+}
+
+/* 不可用操作（无可重命名/删除对象）保持静默，但仍占位 */
+.vuefinder__toolbar__actions > div:has(.vf-toolbar-icon-disabled),
+.vuefinder__toolbar__controls > div:has(.vf-toolbar-icon-disabled) {
+  border-color: var(--border);
+  background: #fff;
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.vuefinder__toolbar .vf-toolbar-icon,
+.vuefinder__toolbar .vf-toolbar-icon-disabled {
+  width: 16px;
+  height: 16px;
+  stroke: currentcolor;
+}
+
+/* 搜索图标是 fill=currentcolor 的描边图形（库按深色底设计），按描边渲染才能在白底按钮上可见 */
+.vuefinder__toolbar .vf-toolbar-icon[fill='currentColor'] {
+  fill: none;
+  color: inherit;
+  stroke-width: 1.5;
+}
+
+.vuefinder__toolbar__filter-indicator {
+  background-color: var(--brand);
+}
+
+/* ===== 面包屑 ===== */
+
+.vuefinder__breadcrumb__container {
+  gap: var(--spacing-xs);
+  padding: 6px var(--spacing-md);
+  border-bottom: 1px solid var(--border);
+  background: #fff;
+}
+
+/* 面包屑区域默认不描边，悬停时才显形，避免整条看起来像输入框 */
+.vuefinder__breadcrumb__path-container,
+.vuefinder__breadcrumb__path-mode {
+  height: var(--control-height);
+  margin-left: var(--spacing-sm);
+  padding-inline: var(--spacing-sm);
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  font-size: 13px;
+}
+
+.vuefinder__breadcrumb__path-container:hover,
+.vuefinder__breadcrumb__path-mode:hover {
+  border-color: var(--border);
+  background: #fff;
+}
+
+.vuefinder__breadcrumb__home-icon,
+.vuefinder__breadcrumb__close-icon,
+.vuefinder__breadcrumb__refresh-icon,
+.vuefinder__breadcrumb__go-up--active,
+.vuefinder__breadcrumb__toggle-tree {
+  width: 24px;
+  height: 24px;
+  padding: 4px;
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+}
+
+.vuefinder__breadcrumb__home-icon:hover,
+.vuefinder__breadcrumb__close-icon:hover,
+.vuefinder__breadcrumb__refresh-icon:hover,
+.vuefinder__breadcrumb__go-up--active:hover,
+.vuefinder__breadcrumb__toggle-tree:hover,
+.vuefinder__breadcrumb__toggle-tree--active {
+  background: var(--brand-light);
+  color: var(--brand);
+}
+
+.vuefinder__breadcrumb__go-up--inactive {
+  color: var(--text-tertiary);
+}
+
+.vuefinder__breadcrumb__item {
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+}
+
+.vuefinder__breadcrumb__item:hover {
+  background: var(--brand-light);
+  color: var(--brand);
+}
+
+/* ===== 表头：对齐平台表格表头 ===== */
+
+.vuefinder__explorer__header {
+  height: 48px;
+  /* 表头在组件里是纵向 flex 的弹性项，容器紧张时会被压到三十几像素，固定住才与平台表头同高 */
+  flex-shrink: 0;
+  padding-inline: 0;
+  border-bottom: 1px solid var(--border);
+  background: var(--brand-table);
+  color: var(--brand-dark);
+  font-size: var(--table-header-font-size, 15px);
+  font-weight: 600;
+}
+
+.vuefinder__explorer__header > * {
+  padding-inline: var(--spacing-md);
+  border-inline-end-color: var(--border);
+}
+
+.vuefinder__explorer__header .vf-sort-button {
+  padding-inline: var(--spacing-md);
+  background: transparent;
+  color: var(--brand-dark);
+  font-size: var(--table-header-font-size, 15px);
+  font-weight: 600;
+}
+
+.vuefinder__explorer__header .vf-sort-button:hover {
+  background: var(--brand-light);
+  color: var(--brand);
+}
+
+.vuefinder__explorer__sort-icon {
+  color: inherit;
+}
+
+/* ===== 列表 ===== */
+
+/* 行分隔线由内容行提供，选择区不留内边距，悬停底色才能铺满整行 */
+.vuefinder__explorer__selector-area {
+  padding: 0;
+}
+
+.vuefinder__explorer__item-list-content {
+  padding-inline: var(--spacing-md);
+  border-bottom: 1px solid var(--border);
+}
+
+.vuefinder__explorer__item-list-name {
+  gap: var(--spacing-sm);
+  color: var(--text-primary);
+  font-size: 14px;
+}
+
+.vuefinder__explorer__item-size,
+.vuefinder__explorer__item-date {
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+.vuefinder__explorer__item-date {
+  padding-inline: var(--spacing-md);
+}
+
+/* 目录图标用品牌色，文件图标保持中性灰 */
+.vuefinder__item-icon__folder {
+  color: var(--brand);
+  fill: var(--brand);
+}
+
+.vuefinder__item-icon__file {
+  color: var(--text-tertiary);
+}
+
+/* 选中态：避免组件默认的整行描边，改用平台选中的浅品牌底 + 左侧指示条 */
+.vf-explorer-item-list.vf-explorer-selected,
+.vf-explorer-item-grid.vf-explorer-selected {
+  border-color: transparent;
+  background-color: var(--control-active-bg);
+}
+
+.vf-explorer-item-list.vf-explorer-selected .vuefinder__explorer__item-name {
+  color: var(--brand);
+  font-weight: 500;
+}
+
+.vf-explorer-item-list.vf-explorer-selected .vuefinder__item-icon__folder {
+  color: var(--brand-active);
+  fill: var(--brand-active);
+}
+
+/* 空目录没有内容节点，用伪元素补一条与平台一致的空态提示 */
+.vuefinder__explorer__scroll-content:not(:has(.vf-explorer-item-list-row, .vf-explorer-item-grid-row))::after {
+  display: block;
+  padding: var(--spacing-2xl) 0;
+  color: var(--text-tertiary);
+  font-size: 13px;
+  text-align: center;
+  content: '此文件夹暂无内容';
+}
+
+/* ===== 网格 ===== */
+
+.vuefinder__explorer__item-grid-content {
+  gap: var(--spacing-xs);
+}
+
+.vuefinder__explorer__item-grid-content .vuefinder__explorer__item-name {
+  color: var(--text-primary);
+  font-size: 13px;
+}
+
+.vf-explorer-item-grid {
+  border-radius: var(--radius-sm);
+}
+
+/* ===== 状态栏 ===== */
+
+.vuefinder__status-bar__wrapper {
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-top: 1px solid var(--border);
+  background: #fff;
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+/* 存储项只有当前空间一个、且页头已展示空间名与容量，隐藏选择器本体（计数与它同级，不能连父容器一起隐藏） */
+.vuefinder__status-bar__storage-container {
+  display: none;
+}
+
+/* ===== 弹层（右键菜单、搜索、全屏等，均传送到 body） ===== */
+
+.vuefinder__context-menu {
+  min-width: 140px;
+  padding: var(--spacing-xs);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: #fff;
+  box-shadow: var(--shadow-popup);
+}
+
+.vuefinder__context-menu__item--disabled {
+  color: var(--text-placeholder);
+}
+
+.vuefinder__modal-layout__overlay {
+  background: rgba(15, 23, 42, 0.45);
+}
+
+.vuefinder__modal-layout__body {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-popup);
+}
+
+.vuefinder__toolbar__dropdown,
+.vuefinder__toolbar__dropdown-content {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: #fff;
+  box-shadow: var(--shadow-popup);
+}
+
+.vuefinder__search-modal__dropdown,
+.vuefinder__search-modal__item-dropdown,
+.vuefinder__breadcrumb__hidden-dropdown {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: #fff;
+  box-shadow: var(--shadow-popup);
+}
+
+/* 滚动条与平台内容区同一灰度与粗细 */
+.vf-scrollbars-theme {
+  --os-size: 8px;
+  --os-padding-perpendicular: 2px;
+  --os-padding-axis: 2px;
+  --os-handle-border-radius: 4px;
+  --os-handle-bg: #d1d5db;
+  --os-handle-bg-hover: #9ca3af;
+  --os-handle-bg-active: #6b7280;
+}

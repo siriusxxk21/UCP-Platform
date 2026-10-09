@@ -1,0 +1,199 @@
+{
+  "import-error" : {
+    "row" : 7,
+    "message" : "root.message：原值"
+  },
+  "import-preview" : {
+    "columns" : [ {
+      "code" : "root.columns[0].code：原值",
+      "name" : "root.columns[0].name：原值",
+      "type" : "root.columns[0].type：原值",
+      "length" : 7,
+      "precision" : 7,
+      "scale" : 7,
+      "required" : true,
+      "unique" : true
+    } ],
+    "errors" : [ {
+      "row" : 7,
+      "message" : "root.errors[0].message：原值"
+    } ]
+  },
+  "reconcile-apply" : {
+    "id" : "root.id：原值",
+    "expectedLockVersion" : 7,
+    "fingerprint" : "root.fingerprint：原值",
+    "reason" : "root.reason：原值"
+  },
+  "reconcile-preview" : {
+    "id" : "root.id：原值",
+    "revision" : 7,
+    "fingerprint" : "root.fingerprint：原值",
+    "allowed" : true,
+    "changes" : [ {
+      "kind" : "root.changes[0].kind：原值",
+      "message" : "root.changes[0].message：原值"
+    } ],
+    "checks" : [ {
+      "code" : "root.checks[0].code：原值",
+      "message" : "root.checks[0].message：原值",
+      "blocking" : true
+    } ]
+  },
+  "table-detail" : {
+    "table" : {
+      "schemaName" : "root.table.schemaName：原值",
+      "tableName" : "root.table.tableName：原值",
+      "comment" : "root.table.comment：原值",
+      "kind" : "root.table.kind：原值",
+      "management" : "root.table.management：原值",
+      "role" : "root.table.role：原值",
+      "system" : true,
+      "objectId" : "root.table.objectId：原值",
+      "objectName" : "root.table.objectName：原值",
+      "publishedVersion" : 7,
+      "estimatedRows" : 19,
+      "totalBytes" : 19,
+      "structureState" : "root.table.structureState：原值",
+      "verifiedAt" : 1789272000.000000000
+    },
+    "structure" : {
+      "relation" : {
+        "schema" : "root.structure.relation.schema：原值",
+        "name" : "root.structure.relation.name：原值",
+        "kind" : "root.structure.relation.kind：原值",
+        "comment" : "root.structure.relation.comment：原值"
+      },
+      "columns" : [ {
+        "name" : "root.structure.columns[0].name：原值",
+        "ordinal" : 7,
+        "nativeType" : "root.structure.columns[0].nativeType：原值",
+        "nullable" : true,
+        "defaultExpression" : "root.structure.columns[0].defaultExpression：原值",
+        "identityKind" : "root.structure.columns[0].identityKind：原值",
+        "generatedKind" : "root.structure.columns[0].generatedKind：原值",
+        "comment" : "root.structure.columns[0].comment：原值",
+        "primaryKeyPosition" : 7
+      } ],
+      "constraints" : [ {
+        "name" : "root.structure.constraints[0].name：原值",
+        "kind" : "root.structure.constraints[0].kind：原值",
+        "definition" : "root.structure.constraints[0].definition：原值"
+      } ],
+      "indexes" : [ {
+        "name" : "root.structure.indexes[0].name：原值",
+        "unique" : true,
+        "primary" : true,
+        "valid" : true,
+        "definition" : "root.structure.indexes[0].definition：原值"
+      } ],
+      "triggers" : [ {
+        "name" : "root.structure.triggers[0].name：原值",
+        "enabled" : "root.structure.triggers[0].enabled：原值",
+        "definition" : "root.structure.triggers[0].definition：原值"
+      } ],
+      "statistics" : {
+        "estimatedRows" : 19,
+        "tableBytes" : 19,
+        "indexBytes" : 19,
+        "totalBytes" : 19,
+        "rowSecurity" : true,
+        "forceRowSecurity" : true,
+        "canSelect" : true,
+        "canWrite" : true
+      }
+    },
+    "fingerprint" : "root.fingerprint：原值",
+    "fieldMapping" : {
+      "字段" : "root.fieldMapping.value：原值"
+    },
+    "checks" : [ {
+      "code" : "root.checks[0].code：原值",
+      "message" : "root.checks[0].message：原值",
+      "blocking" : true
+    } ]
+  },
+  "table-preflight" : {
+    "schemaName" : "root.schemaName：原值",
+    "tableName" : "root.tableName：原值",
+    "fingerprint" : "root.fingerprint：原值",
+    "allowed" : true,
+    "readOnly" : true,
+    "checks" : [ {
+      "code" : "root.checks[0].code：原值",
+      "message" : "root.checks[0].message：原值",
+      "blocking" : true
+    } ],
+    "titleColumns" : [ "root.titleColumns[0]：原值" ],
+    "structure" : {
+      "relation" : {
+        "schema" : "root.structure.relation.schema：原值",
+        "name" : "root.structure.relation.name：原值",
+        "kind" : "root.structure.relation.kind：原值",
+        "comment" : "root.structure.relation.comment：原值"
+      },
+      "columns" : [ {
+        "name" : "root.structure.columns[0].name：原值",
+        "ordinal" : 7,
+        "nativeType" : "root.structure.columns[0].nativeType：原值",
+        "nullable" : true,
+        "defaultExpression" : "root.structure.columns[0].defaultExpression：原值",
+        "identityKind" : "root.structure.columns[0].identityKind：原值",
+        "generatedKind" : "root.structure.columns[0].generatedKind：原值",
+        "comment" : "root.structure.columns[0].comment：原值",
+        "primaryKeyPosition" : 7
+      } ],
+      "constraints" : [ {
+        "name" : "root.structure.constraints[0].name：原值",
+        "kind" : "root.structure.constraints[0].kind：原值",
+        "definition" : "root.structure.constraints[0].definition：原值"
+      } ],
+      "indexes" : [ {
+        "name" : "root.structure.indexes[0].name：原值",
+        "unique" : true,
+        "primary" : true,
+        "valid" : true,
+        "definition" : "root.structure.indexes[0].definition：原值"
+      } ],
+      "triggers" : [ {
+        "name" : "root.structure.triggers[0].name：原值",
+        "enabled" : "root.structure.triggers[0].enabled：原值",
+        "definition" : "root.structure.triggers[0].definition：原值"
+      } ],
+      "statistics" : {
+        "estimatedRows" : 19,
+        "tableBytes" : 19,
+        "indexBytes" : 19,
+        "totalBytes" : 19,
+        "rowSecurity" : true,
+        "forceRowSecurity" : true,
+        "canSelect" : true,
+        "canWrite" : true
+      }
+    }
+  },
+  "table-preview" : {
+    "columns" : [ "root.columns[0]：原值" ],
+    "rows" : [ {
+      "字段" : "root.rows[0].value：原值"
+    } ],
+    "hasMore" : true,
+    "maskedColumns" : [ "root.maskedColumns[0]：原值" ]
+  },
+  "table-row" : {
+    "schemaName" : "root.schemaName：原值",
+    "tableName" : "root.tableName：原值",
+    "comment" : "root.comment：原值",
+    "kind" : "root.kind：原值",
+    "management" : "root.management：原值",
+    "role" : "root.role：原值",
+    "system" : true,
+    "objectId" : "root.objectId：原值",
+    "objectName" : "root.objectName：原值",
+    "publishedVersion" : 7,
+    "estimatedRows" : 19,
+    "totalBytes" : 19,
+    "structureState" : "root.structureState：原值",
+    "verifiedAt" : 1789272000.000000000
+  }
+}

@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!-- 记录文件夹对应关系读写；（对象、记录、来源、锚）定位一行，读取只看未删除的行，全部使用绑定参数。 -->
+<mapper namespace="com.richuang.os.nocode.runtime.dal.mapper.RecordFolderBindingMapper">
+
+    <select id="selectBinding"
+            parameterType="org.apache.ibatis.binding.MapperMethod$ParamMap"
+            resultType="com.richuang.os.nocode.runtime.dal.dataobject.RecordFolderBindingDO">
+        SELECT id, object_id, record_id, source_id, anchor_entry_id, space_id, entry_id,
+               origin, auto_name, creator, create_time, updater, update_time, deleted
+        FROM public.nocode_record_folder_binding
+        WHERE object_id = #{objectId}
+        AND record_id = #{recordId}
+        AND source_id = #{sourceId}
+        AND anchor_entry_id = #{anchorEntryId}
+        AND deleted = 0
+    </select>
+
+    <select id="selectBoundRecordIds"
+            parameterType="org.apache.ibatis.binding.MapperMethod$ParamMap"
+            resultType="java.lang.String">
+        SELECT record_id
+        FROM public.nocode_record_folder_binding
+        WHERE object_id = #{objectId}
+        AND source_id = #{sourceId}
+        AND anchor_entry_id = #{anchorEntryId}
+        AND deleted = 0
+        AND record_id IN
+        <foreach collection="recordIds" item="recordId" open="(" separator="," close=")">#{recordId}</foreach>
+    </select>
+
+    <update id="deleteBinding"
+            parameterType="org.apache.ibatis.binding.MapperMethod$ParamMap"
+            flushCache="true">
+        UPDATE public.nocode_record_folder_binding
+        SET deleted = 1, updater = #{actor}, update_time = now()
+        WHERE id = #{id}
+        AND deleted = 0
+    </update>
+
+</mapper>

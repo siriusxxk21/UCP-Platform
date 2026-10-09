@@ -1,0 +1,5 @@
+{
+  "extends": "./tsconfig.nocode.json",
+  "compilerOptions": { "lib": ["ES2022", "DOM", "DOM.Iterable"] },
+  "include": ["src/views/bpm/task/**/*.ts", "src/views/bpm/task/**/*.vue", "tools/task-regression/**/*.ts"]
+}

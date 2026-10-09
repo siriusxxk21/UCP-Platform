@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.richuang.os.nocode.report.dal.mapper.ReportAuthorizationMapper">
+    <select id="acl" resultType="com.richuang.os.nocode.report.dal.dataobject.ReportResourceAclDO" useCache="false" flushCache="true">
+        SELECT * FROM public.nocode_report_resource_acl WHERE resource_kind=#{kind} AND resource_id=#{id} AND deleted=0
+    </select>
+    <select id="policy" resultType="com.richuang.os.nocode.report.dal.dataobject.ReportDatasetPolicyDO" useCache="false" flushCache="true">
+        SELECT * FROM public.nocode_report_dataset_policy WHERE dataset_id=#{id} AND deleted=0
+    </select>
+    <select id="ceiling" resultType="com.richuang.os.nocode.report.dal.dataobject.ReportObjectGrantDO" useCache="false" flushCache="true">
+        SELECT * FROM public.nocode_report_object_grant WHERE dataset_id=#{id} AND object_id=#{object} AND deleted=0
+    </select>
+    <select id="ceilings" resultType="com.richuang.os.nocode.report.dal.dataobject.ReportObjectGrantDO" useCache="false" flushCache="true">
+        SELECT * FROM public.nocode_report_object_grant WHERE dataset_id=#{id} AND deleted=0 ORDER BY object_id
+    </select>
+    <select id="referencesObject" resultType="boolean">
+        SELECT EXISTS (
+            SELECT 1 FROM (
+                SELECT draft_json AS content FROM public.nocode_report_dataset WHERE id=#{id} AND deleted=0
+                UNION ALL SELECT definition_json FROM public.nocode_report_dataset_version WHERE dataset_id=#{id} AND deleted=0
+            ) definitions WHERE content #&gt;&gt; '{source,root,objectId}'=#{object}
+                OR EXISTS(SELECT 1 FROM jsonb_array_elements(COALESCE(content #&gt; '{source,relations}','[]'::jsonb)) relation WHERE relation #&gt;&gt; '{target,objectId}'=#{object})
+        )
+    </select>
+    <select id="authorizationObjectIds" resultType="string" useCache="false" flushCache="true">
+        WITH definitions AS (
+            SELECT draft_json AS content FROM public.nocode_report_dataset WHERE id=#{id} AND deleted=0
+            UNION ALL SELECT definition_json FROM public.nocode_report_dataset_version WHERE dataset_id=#{id} AND deleted=0
+        ), objects AS (
+            SELECT content #&gt;&gt; '{source,root,objectId}' AS id FROM definitions
+            UNION SELECT relation #&gt;&gt; '{target,objectId}' FROM definitions,
+                jsonb_array_elements(COALESCE(content #&gt; '{source,relations}','[]'::jsonb)) relation
+            UNION SELECT object_id::text FROM public.nocode_report_object_grant WHERE dataset_id=#{id} AND deleted=0
+        ) SELECT id FROM objects WHERE id IS NOT NULL ORDER BY id
+    </select>
+    <insert id="saveAcl">
+        INSERT INTO public.nocode_report_resource_acl(resource_kind,resource_id,policy_json,creator,updater)
+        VALUES(#{kind},#{id},CAST(#{json} AS jsonb),#{actor},#{actor})
+        ON CONFLICT(resource_kind,resource_id) DO UPDATE SET policy_json=excluded.policy_json,
+            lock_version=nocode_report_resource_acl.lock_version+1,deleted=0,updater=excluded.updater,update_time=clock_timestamp()
+    </insert>
+    <insert id="savePolicy">
+        INSERT INTO public.nocode_report_dataset_policy(dataset_id,members_json,creator,updater)
+        VALUES(#{id},CAST(#{json} AS jsonb),#{actor},#{actor})
+        ON CONFLICT(dataset_id) DO UPDATE SET members_json=excluded.members_json,
+            lock_version=nocode_report_dataset_policy.lock_version+1,deleted=0,updater=excluded.updater,update_time=clock_timestamp()
+    </insert>
+    <insert id="saveCeiling">
+        INSERT INTO public.nocode_report_object_grant(dataset_id,object_id,grant_json,reason,creator,updater)
+        VALUES(#{id},#{object},CAST(#{json} AS jsonb),#{reason},#{actor},#{actor})
+        ON CONFLICT(dataset_id,object_id) DO UPDATE SET grant_json=excluded.grant_json,reason=excluded.reason,
+            lock_version=nocode_report_object_grant.lock_version+1,deleted=0,updater=excluded.updater,update_time=clock_timestamp()
+    </insert>
+</mapper>

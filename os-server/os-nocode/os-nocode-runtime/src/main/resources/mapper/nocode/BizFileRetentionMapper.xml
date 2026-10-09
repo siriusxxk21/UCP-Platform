@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!-- 文件保留引用读写；（文件、持有者）唯一，释放必须物理删除以腾出唯一键，登记为幂等插入。 -->
+<mapper namespace="com.richuang.os.nocode.runtime.dal.mapper.BizFileRetentionMapper">
+
+    <insert id="register"
+            parameterType="org.apache.ibatis.binding.MapperMethod$ParamMap"
+            flushCache="true">
+        INSERT INTO public.nocode_biz_file_retention
+            (file_id, holder_type, holder_id, object_id, record_id, creator, updater)
+        VALUES
+        <foreach collection="fileIds" item="fileId" separator=",">
+            (#{fileId}, #{holderType}, #{holderId}, #{objectId}, #{recordId}, #{actor}, #{actor})
+        </foreach>
+        ON CONFLICT (file_id, holder_type, holder_id) DO NOTHING
+    </insert>
+
+    <delete id="deleteByHolder"
+            parameterType="org.apache.ibatis.binding.MapperMethod$ParamMap"
+            flushCache="true">
+        DELETE FROM public.nocode_biz_file_retention
+        WHERE holder_type = #{holderType}
+        AND holder_id = #{holderId}
+    </delete>
+
+    <!-- 仍被有效持有者引用的文件子集：历史与提交材料永久有效，工作草稿只在草稿仍处于 DRAFT 时有效 -->
+    <select id="selectEffectiveFileIds"
+            parameterType="org.apache.ibatis.binding.MapperMethod$ParamMap"
+            resultType="java.lang.Long"
+            useCache="false"
+            flushCache="true">
+        SELECT DISTINCT r.file_id
+        FROM public.nocode_biz_file_retention r
+        WHERE r.deleted = 0
+        AND r.file_id IN
+        <foreach collection="fileIds" item="fileId" open="(" separator="," close=")">#{fileId}</foreach>
+        AND (
+            r.holder_type &lt;&gt; 'WORK_DRAFT'
+            OR EXISTS (
+                SELECT 1
+                FROM public.nocode_work_draft d
+                WHERE d.id = r.holder_id
+                AND d.state = 'DRAFT'
+                AND d.deleted = 0
+            )
+        )
+    </select>
+
+</mapper>

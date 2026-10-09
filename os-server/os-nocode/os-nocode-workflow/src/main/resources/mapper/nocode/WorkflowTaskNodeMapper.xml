@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.richuang.os.nocode.workflow.dal.mapper.task.WorkflowTaskNodeMapper">
+    <select id="lock" resultType="java.lang.Integer">
+        SELECT 1 FROM pg_advisory_xact_lock(hashtextextended(#{key}, 0))
+    </select>
+    <select id="execution" resultType="com.richuang.os.nocode.workflow.dal.dataobject.task.WorkflowTaskNodeDO" flushCache="true" useCache="false">
+        SELECT * FROM public.nocode_workflow_task_node WHERE execution_id=#{id} AND tenant_id=#{tenant} AND deleted=false ORDER BY create_time DESC,id DESC LIMIT 1
+    </select>
+    <select id="binding" resultType="com.richuang.os.nocode.workflow.dal.dataobject.task.WorkflowTaskNodeDO" flushCache="true" useCache="false">
+        SELECT * FROM public.nocode_workflow_task_node WHERE id=#{id} AND tenant_id=#{tenant} AND deleted=false
+    </select>
+    <select id="arrival" resultType="com.richuang.os.nocode.workflow.dal.dataobject.task.WorkflowTaskNodeDO" useCache="false">
+        SELECT * FROM public.nocode_workflow_task_node WHERE execution_id=#{execution} AND process_instance_id=#{process}
+            AND node_id=#{node} AND tenant_id=#{tenant} AND deleted=false
+    </select>
+    <select id="byTask" resultType="com.richuang.os.nocode.workflow.dal.dataobject.task.WorkflowTaskNodeDO" useCache="false">
+        SELECT * FROM public.nocode_workflow_task_node WHERE task_id=#{rootId} AND tenant_id=#{tenant} AND deleted=false
+    </select>
+    <select id="process" resultType="com.richuang.os.nocode.workflow.dal.dataobject.task.WorkflowTaskNodeDO">
+        SELECT * FROM public.nocode_workflow_task_node WHERE process_instance_id=#{id} AND tenant_id=#{tenant} AND deleted=false ORDER BY create_time,id
+    </select>
+    <select id="byTasks" resultType="com.richuang.os.nocode.workflow.dal.dataobject.task.WorkflowTaskNodeDO" useCache="false">
+        SELECT * FROM public.nocode_workflow_task_node WHERE tenant_id=#{tenant} AND deleted=false
+        <choose>
+            <when test="rootIds != null and rootIds.size() > 0">
+                AND task_id IN
+                <foreach collection="rootIds" item="rootId" open="(" separator="," close=")">#{rootId}</foreach>
+            </when>
+            <otherwise>AND false</otherwise>
+        </choose>
+    </select>
+    <select id="pending" resultType="com.richuang.os.nocode.workflow.dal.dataobject.task.WorkflowTaskNodeDO" useCache="false">
+        SELECT * FROM public.nocode_workflow_task_node WHERE deleted=false AND state IN ('CREATING','WAITING')
+            AND next_attempt_time &lt;= CURRENT_TIMESTAMP ORDER BY next_attempt_time,id LIMIT 100
+    </select>
+    <insert id="create">
+        INSERT INTO public.nocode_workflow_task_node(id,tenant_id,execution_id,process_instance_id,process_definition_id,node_id,node_name,
+            initiator_id,publisher_id,configuration_json,people_json,state,creator,updater)
+        VALUES(#{row.id},#{row.tenantId},#{row.executionId},#{row.processInstanceId},#{row.processDefinitionId},#{row.nodeId},#{row.nodeName},
+            #{row.initiatorId},#{row.publisherId},#{row.configurationJson},#{row.peopleJson},#{row.state},#{row.initiatorId},#{row.initiatorId})
+    </insert>
+    <update id="save">
+        UPDATE public.nocode_workflow_task_node SET task_id=#{row.taskId},state=#{row.state},last_error=#{row.lastError},
+            attempts=#{row.attempts},next_attempt_time=#{row.nextAttemptTime},update_time=CURRENT_TIMESTAMP,updater='workflow'
+        WHERE id=#{row.id} AND tenant_id=#{row.tenantId} AND deleted=false
+    </update>
+</mapper>

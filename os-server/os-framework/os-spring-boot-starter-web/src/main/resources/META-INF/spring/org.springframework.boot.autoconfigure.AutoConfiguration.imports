@@ -1,0 +1,7 @@
+com.richuang.os.framework.apilog.config.OsApiLogAutoConfiguration
+com.richuang.os.framework.jackson.config.OsJacksonAutoConfiguration
+com.richuang.os.framework.swagger.config.OsSwaggerAutoConfiguration
+com.richuang.os.framework.web.config.OsWebAutoConfiguration
+com.richuang.os.framework.xss.config.OsXssAutoConfiguration
+com.richuang.os.framework.banner.config.OsBannerAutoConfiguration
+com.richuang.os.framework.encrypt.config.OsApiEncryptAutoConfiguration

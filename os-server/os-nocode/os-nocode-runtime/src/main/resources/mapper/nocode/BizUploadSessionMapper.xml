@@ -1,0 +1,154 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!-- 业务附件上传会话的状态流转、续期与过期扫描；全部使用绑定参数。 -->
+<mapper namespace="com.richuang.os.nocode.runtime.dal.mapper.BizUploadSessionMapper">
+
+    <select id="selectTemporaryList"
+            parameterType="org.apache.ibatis.binding.MapperMethod$ParamMap"
+            resultType="com.richuang.os.nocode.runtime.dal.dataobject.BizUploadSessionDO">
+        SELECT id, session_key, user_id, object_id, field_id, record_id,
+               file_id, file_name, state, expires_at, idempotency_key,
+               creator, create_time, updater, update_time, deleted
+        FROM public.nocode_biz_upload_session
+        WHERE object_id = #{objectId}
+        AND field_id = #{fieldId}
+        AND state = 'TEMPORARY'
+        AND deleted = 0
+        AND expires_at &gt;= now()
+        AND file_id IN
+        <foreach collection="fileIds" item="fid" open="(" separator="," close=")">#{fid}</foreach>
+    </select>
+
+    <select id="selectIdempotent"
+            parameterType="org.apache.ibatis.binding.MapperMethod$ParamMap"
+            resultType="com.richuang.os.nocode.runtime.dal.dataobject.BizUploadSessionDO">
+        SELECT id, session_key, user_id, object_id, field_id, record_id,
+               file_id, file_name, state, expires_at, idempotency_key,
+               creator, create_time, updater, update_time, deleted
+        FROM public.nocode_biz_upload_session
+        WHERE user_id = #{userId}
+        AND object_id = #{objectId}
+        AND field_id = #{fieldId}
+        AND session_key = #{sessionKey}
+        AND idempotency_key = #{idempotencyKey}
+        AND state IN ('TEMPORARY','BINDING')
+        AND expires_at &gt;= now()
+        AND deleted = 0
+        ORDER BY id DESC
+        LIMIT 1
+    </select>
+
+    <update id="claimBinding"
+            parameterType="org.apache.ibatis.binding.MapperMethod$ParamMap"
+            flushCache="true">
+        UPDATE public.nocode_biz_upload_session
+        SET state = 'BINDING', updater = #{actor}, update_time = now()
+        WHERE deleted = 0
+        AND state = 'TEMPORARY'
+        AND expires_at &gt;= now()
+        AND id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">#{id}</foreach>
+    </update>
+
+    <update id="markBound"
+            parameterType="org.apache.ibatis.binding.MapperMethod$ParamMap"
+            flushCache="true">
+        UPDATE public.nocode_biz_upload_session
+        SET state = 'BOUND', updater = #{actor}, update_time = now()
+        WHERE deleted = 0
+        AND state = 'BINDING'
+        AND id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">#{id}</foreach>
+    </update>
+
+    <!-- 续期只作用于仍然有效的会话：已过期不复活，由用户重新上传（A21） -->
+    <update id="renew"
+            parameterType="org.apache.ibatis.binding.MapperMethod$ParamMap"
+            flushCache="true">
+        UPDATE public.nocode_biz_upload_session
+        SET expires_at = #{expiresAt}, updater = #{actor}, update_time = now()
+        WHERE session_key = #{sessionKey}
+        AND user_id = #{userId}
+        AND state = 'TEMPORARY'
+        AND deleted = 0
+        AND expires_at &gt;= now()
+    </update>
+
+    <!-- 草稿引用续留：按被引用的文件编号顺延本人该对象下的临时会话；过期不复活，草稿保留引用仍阻止内容清理 -->
+    <update id="renewByFiles"
+            parameterType="org.apache.ibatis.binding.MapperMethod$ParamMap"
+            flushCache="true">
+        UPDATE public.nocode_biz_upload_session
+        SET expires_at = #{expiresAt}, updater = #{actor}, update_time = now()
+        WHERE user_id = #{userId}
+        AND object_id = #{objectId}
+        AND left(session_key, 5) != 'task_'
+        AND state = 'TEMPORARY'
+        AND deleted = 0
+        AND expires_at &gt;= now()
+        AND file_id IN
+        <foreach collection="fileIds" item="fid" open="(" separator="," close=")">#{fid}</foreach>
+    </update>
+
+    <select id="selectExpiredList"
+            parameterType="org.apache.ibatis.binding.MapperMethod$ParamMap"
+            resultType="com.richuang.os.nocode.runtime.dal.dataobject.BizUploadSessionDO">
+        SELECT id, session_key, user_id, object_id, field_id, record_id,
+               file_id, file_name, state, expires_at, idempotency_key,
+               creator, create_time, updater, update_time, deleted
+        FROM public.nocode_biz_upload_session
+        WHERE state = 'TEMPORARY'
+        AND deleted = 0
+        AND expires_at &lt; now()
+        ORDER BY expires_at
+        LIMIT #{limit}
+    </select>
+
+    <update id="markExpired"
+            parameterType="org.apache.ibatis.binding.MapperMethod$ParamMap"
+            flushCache="true">
+        UPDATE public.nocode_biz_upload_session
+        SET state = 'EXPIRED', updater = #{actor}, update_time = now()
+        WHERE deleted = 0
+        AND state = 'TEMPORARY'
+        AND id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">#{id}</foreach>
+    </update>
+
+    <select id="selectCleanupList"
+            parameterType="org.apache.ibatis.binding.MapperMethod$ParamMap"
+            resultType="com.richuang.os.nocode.runtime.dal.dataobject.BizUploadSessionDO">
+        SELECT id, session_key, user_id, object_id, field_id, record_id,
+               file_id, file_name, state, expires_at, idempotency_key,
+               creator, create_time, updater, update_time, deleted
+        FROM public.nocode_biz_upload_session
+        WHERE state = 'EXPIRED'
+        AND deleted = 0
+        ORDER BY expires_at, id
+        LIMIT #{limit}
+    </select>
+
+    <!-- 内容删除完成登记：仅已过期待清理会话转为已清理，避免覆盖已绑定会话 -->
+    <update id="markCleaned"
+            parameterType="org.apache.ibatis.binding.MapperMethod$ParamMap"
+            flushCache="true">
+        UPDATE public.nocode_biz_upload_session
+        SET state = 'CLEANED', updater = #{actor}, update_time = now()
+        WHERE deleted = 0
+        AND state = 'EXPIRED'
+        AND id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">#{id}</foreach>
+    </update>
+
+    <select id="countTemporaryByObject"
+            parameterType="org.apache.ibatis.binding.MapperMethod$ParamMap"
+            resultType="int">
+        SELECT COUNT(*)
+        FROM public.nocode_biz_upload_session
+        WHERE object_id = #{objectId}
+        AND state = 'TEMPORARY'
+        AND deleted = 0
+        AND expires_at &gt;= now()
+    </select>
+
+</mapper>

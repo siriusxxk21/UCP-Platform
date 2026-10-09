@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>com.richuang</groupId>
+        <artifactId>os</artifactId>
+        <version>${revision}</version>
+    </parent>
+    <properties>
+        <maven.test.skip>false</maven.test.skip>
+    </properties>
+    <artifactId>os-nocode</artifactId>
+    <packaging>pom</packaging>
+    <modules>
+        <module>os-nocode-api</module>
+        <module>os-nocode-metadata</module>
+        <module>os-nocode-schema</module>
+        <module>os-nocode-application</module>
+        <module>os-nocode-report</module>
+        <module>os-nocode-work</module>
+        <module>os-nocode-runtime</module>
+        <module>os-nocode-workflow</module>
+        <module>os-nocode-web</module>
+        <module>os-nocode-tools</module>
+    </modules>
+</project>

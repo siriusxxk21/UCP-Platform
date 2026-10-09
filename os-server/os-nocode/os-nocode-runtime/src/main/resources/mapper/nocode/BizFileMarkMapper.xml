@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!-- 业务文件用户标记：收藏与最近访问按（用户、节点、类型）唯一，逻辑删除后重新登记；全部使用绑定参数。 -->
+<mapper namespace="com.richuang.os.nocode.runtime.dal.mapper.BizFileMarkMapper">
+
+    <!-- 部分唯一索引只覆盖未删除行，收藏重复提交幂等且保留首次收藏时间 -->
+    <insert id="insertFavorite"
+            parameterType="org.apache.ibatis.binding.MapperMethod$ParamMap"
+            flushCache="true">
+        INSERT INTO public.nocode_biz_file_mark
+            (user_id, object_id, entry_id, mark_type, creator, updater)
+        VALUES
+            (#{userId}, #{objectId}, #{entryId}, 'FAVORITE', #{actor}, #{actor})
+        ON CONFLICT (user_id, entry_id, mark_type) WHERE deleted = 0 DO NOTHING
+    </insert>
+
+    <update id="deleteFavorite"
+            parameterType="org.apache.ibatis.binding.MapperMethod$ParamMap"
+            flushCache="true">
+        UPDATE public.nocode_biz_file_mark
+        SET deleted = 1, updater = #{actor}, update_time = now()
+        WHERE user_id = #{userId}
+        AND entry_id = #{entryId}
+        AND mark_type = 'FAVORITE'
+        AND deleted = 0
+    </update>
+
+    <!-- 最近访问：同一节点顺延访问时间；收藏登记与最近访问互不覆盖 -->
+    <insert id="upsertRecent"
+            parameterType="org.apache.ibatis.binding.MapperMethod$ParamMap"
+            flushCache="true">
+        INSERT INTO public.nocode_biz_file_mark
+            (user_id, object_id, entry_id, mark_type, access_time, creator, updater)
+        VALUES
+            (#{userId}, #{objectId}, #{entryId}, 'RECENT', now(), #{actor}, #{actor})
+        ON CONFLICT (user_id, entry_id, mark_type) WHERE deleted = 0
+        DO UPDATE SET access_time = now(), updater = #{actor}, update_time = now()
+    </insert>
+
+    <select id="selectEntryIds"
+            parameterType="org.apache.ibatis.binding.MapperMethod$ParamMap"
+            resultType="java.lang.Long"
+            timeout="10">
+        SELECT entry_id
+        FROM public.nocode_biz_file_mark
+        WHERE user_id = #{userId}
+        AND object_id = #{objectId}
+        AND mark_type = #{markType}
+        AND deleted = 0
+        ORDER BY COALESCE(access_time, create_time) DESC, id DESC
+        LIMIT #{limit}
+    </select>
+
+</mapper>

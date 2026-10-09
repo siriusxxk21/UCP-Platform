@@ -1,0 +1,7 @@
+{
+  "extends": "./tsconfig.nocode.json",
+  "include": ["src/types/system/dict.ts", "src/api/system/dict.ts", "src/views/system/dict/**/*.vue"],
+  "compilerOptions": {
+    "lib": ["ES2022", "DOM", "DOM.Iterable"]
+  }
+}

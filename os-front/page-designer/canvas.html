@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>页面画布 - 日创 OS 平台</title>
+    <script>
+      // 画布是第二层 iframe，加载失败必须先通知编辑器，再由编辑器转发给宿主。
+      const report = () => parent.postMessage({ channel: 'os-page-canvas', type: 'ERROR' }, location.origin)
+      addEventListener(
+        'error',
+        event => {
+          // 拖动后尺寸通知可由浏览器延到下一帧；仅排除该通知，真实异常仍上报。
+          if (
+            event.target === window &&
+            !event.error &&
+            [
+              'ResizeObserver loop completed with undelivered notifications.',
+              'ResizeObserver loop limit exceeded'
+            ].includes(event.message)
+          )
+            return
+          if (
+            event.target === window ||
+            event.target instanceof HTMLScriptElement ||
+            event.target instanceof HTMLLinkElement
+          )
+            report()
+        },
+        true
+      )
+      addEventListener('unhandledrejection', report)
+    </script>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script type="module" src="/canvas.js"></script>
+  </body>
+</html>

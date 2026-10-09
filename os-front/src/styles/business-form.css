@@ -1,0 +1,273 @@
+/* 业务表单展示规范：仅作用于共享表单与设计画布，不影响设计器属性面板、查询栏。 */
+/* 紧凑明细仍由每行一个公共表单引擎管理，避免每单元格创建一套表单状态。 */
+@media (min-width: 769px) {
+  .os-detail-grid-form {
+    width: calc(var(--detail-columns) * 200px);
+    flex: none;
+  }
+  .os-detail-grid-form .os-business-form > .ant-row {
+    display: grid;
+    grid-template-columns: repeat(var(--detail-columns), 200px);
+    margin: 0 !important;
+  }
+  .os-detail-grid-form .os-business-form > .ant-row > .os-field-column {
+    max-width: none;
+    padding: 6px 8px !important;
+    grid-column: var(--detail-column, auto);
+  }
+  .os-detail-grid-form .ant-form-item {
+    margin-bottom: 0;
+  }
+  .os-detail-grid-form .ant-form-item-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+  .os-detail-grid-form .ant-form-item-control {
+    width: 100%;
+  }
+  .os-detail-grid-form textarea.ant-input {
+    min-height: 32px;
+  }
+}
+.os-form-surface,
+.business-designer ._fc-m-drag {
+  container: os-form / inline-size;
+  min-width: 0;
+}
+
+.os-business-form {
+  --os-form-column-gap: 24px;
+  --os-form-field-gap: 20px;
+  --os-form-section-gap: 24px;
+  --os-form-label-gap: 8px;
+  min-width: 0;
+  color: var(--text-primary, #1f2937);
+  font-size: 14px;
+  line-height: 22px;
+}
+
+/* 根栅格的留白收在容器内，防止滚动定位推动整单横移；保留列内 padding 以承接嵌套 ROW 的 gutter。 */
+.os-form-surface > .os-business-form > .ant-row {
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+}
+
+.os-business-form .ant-col,
+.os-business-form .ant-form-item-control,
+.os-business-form .ant-form-item-control-input-content {
+  min-width: 0;
+}
+
+.os-business-form .ant-form-item {
+  margin-bottom: var(--os-form-field-gap);
+}
+
+/* 分栏已经承担 gutter，叶字段无需再叠加一次水平留白。 */
+.os-business-form .os-form-column .os-field-column {
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}
+
+.os-business-form .os-form-section > .ant-card-body > .ant-col,
+.os-business-form .ant-tabs-tabpane > .ant-col {
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}
+
+.os-business-form .ant-form-item-label > label {
+  height: auto;
+  min-height: 22px;
+  font-size: 14px;
+  line-height: 22px;
+  font-weight: 500;
+  color: var(--text-primary, #1f2937);
+  overflow-wrap: anywhere;
+}
+
+.os-business-form.ant-form-vertical .ant-form-item-label {
+  padding-bottom: var(--os-form-label-gap);
+}
+
+.os-business-form.ant-form-horizontal .ant-form-item-label {
+  padding-right: 12px;
+  white-space: normal;
+}
+
+.os-business-form .ant-form-item-extra,
+.os-business-form .ant-form-item-explain {
+  min-height: 0;
+  margin-top: 4px;
+  font-size: 12px;
+  line-height: 18px;
+  overflow-wrap: anywhere;
+}
+
+.os-business-form .ant-form-item-extra {
+  color: var(--text-secondary, #6b7280);
+}
+
+.os-business-form .ant-input:not(textarea),
+.os-business-form .ant-input-affix-wrapper,
+.os-business-form .ant-input-number,
+.os-business-form .ant-select,
+.os-business-form .ant-picker,
+.os-business-form .business-field-control {
+  width: 100%;
+  max-width: 100%;
+}
+
+.os-business-form textarea.ant-input {
+  min-height: 96px;
+  resize: vertical;
+}
+
+.os-business-form .os-form-section {
+  margin-bottom: var(--os-form-section-gap);
+  border-radius: 8px;
+}
+
+.os-business-form .os-form-section > .ant-card-head {
+  min-height: 48px;
+  padding: 0 20px;
+  background: #fafbfc;
+  font-size: 15px;
+}
+
+.os-business-form .os-form-section > .ant-card-head .ant-card-head-title {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  font-weight: 600;
+}
+
+.os-business-form .os-form-section > .ant-card-body {
+  padding: 20px 20px 0;
+}
+
+.os-business-form .ant-divider-horizontal {
+  margin: 4px 0 var(--os-form-section-gap);
+}
+
+.os-business-form p {
+  margin: 0 0 var(--os-form-field-gap);
+  color: var(--text-secondary, #6b7280);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.os-business-form .ant-tabs-nav {
+  margin-bottom: 20px;
+}
+
+/* 编辑辅助边框不参与业务几何尺寸；空容器仍保留引擎的可拖入占位。 */
+.business-designer ._fc-m-drag ._fd-drag-tool {
+  padding: 0;
+  margin: 0;
+  height: auto;
+  overflow: visible;
+}
+
+.business-designer ._fc-m-drag ._fd-drag-box:not(.drag-holder) {
+  padding: 0;
+  min-height: 0;
+  height: auto;
+  display: flow-root;
+}
+
+.business-designer ._fc-m-drag ._fd-col-drag {
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}
+
+.business-designer ._fc-m-drag ._fd-drag-item {
+  margin: 0 !important;
+}
+
+.business-designer ._fc-m-drag ._fd-row.os-form-row {
+  margin-left: -12px;
+  margin-right: -12px;
+  width: calc(100% + 24px);
+}
+
+.business-designer ._fc-m-drag {
+  padding: 24px;
+}
+
+.os-read-field {
+  min-width: 0;
+  margin-bottom: var(--os-form-field-gap);
+}
+
+.os-read-label {
+  margin-bottom: var(--os-form-label-gap);
+  color: var(--text-secondary, #6b7280);
+  font-size: 14px;
+  line-height: 22px;
+  overflow-wrap: anywhere;
+}
+
+.os-read-value {
+  min-height: 32px;
+  padding: 5px 0;
+  color: var(--text-primary, #1f2937);
+  line-height: 22px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.os-read-value.is-empty {
+  color: var(--text-tertiary, #9ca3af);
+}
+
+.os-read-horizontal > .os-read-field {
+  display: grid;
+  grid-template-columns: 120px minmax(0, 1fr);
+}
+
+.os-read-horizontal > .os-read-field > .os-read-label {
+  padding: 5px 12px 0 0;
+  margin-bottom: 0;
+}
+
+/* 响应真实内容宽度，预览、抽屉、页面窄列和设计画布使用同一断点。 */
+@container os-form (max-width: 599px) {
+  .os-business-form .os-form-column {
+    flex: 0 0 100%;
+    max-width: 100%;
+  }
+
+  .os-business-form.ant-form-horizontal .ant-form-item-row {
+    flex-direction: column;
+  }
+
+  .os-business-form.ant-form-horizontal .ant-form-item-label,
+  .os-business-form.ant-form-horizontal .ant-form-item-control {
+    flex: 0 0 auto !important;
+    max-width: 100%;
+    width: 100%;
+  }
+
+  .os-business-form.ant-form-horizontal .ant-form-item-label {
+    padding: 0 0 var(--os-form-label-gap);
+    text-align: left;
+  }
+
+  .os-read-horizontal > .os-read-field {
+    display: block;
+  }
+
+  .os-read-horizontal > .os-read-field > .os-read-label {
+    padding: 0;
+    margin-bottom: var(--os-form-label-gap);
+  }
+
+  .os-business-form .os-form-section > .ant-card-head {
+    padding: 0 16px;
+  }
+
+  .os-business-form .os-form-section > .ant-card-body {
+    padding: 16px 16px 0;
+  }
+}

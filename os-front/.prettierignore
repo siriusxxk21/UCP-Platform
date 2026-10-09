@@ -1,0 +1,6 @@
+dist
+node_modules
+*.min.js
+src/auto-imports.d.ts
+components.d.ts
+public

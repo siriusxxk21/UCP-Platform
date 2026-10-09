@@ -1,0 +1,243 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.richuang.os.nocode.runtime.dal.mapper.RecordHistoryMapper">
+    <update id="bindTaskContribution" flushCache="true">
+        UPDATE public.nocode_record_history
+        SET source_json = coalesce(source_json, '{}'::jsonb)
+            || jsonb_build_object('taskContributionId', CAST(#{contribution} AS text))
+        WHERE written_txid = pg_current_xact_id() AND id &gt; #{checkpoint}
+        AND application_id = CAST(#{app} AS bigint) AND object_id = CAST(#{object} AS bigint)
+        AND record_id = #{record} AND creator = #{actor} AND deleted = 0
+        AND operation &lt;&gt; 'BASELINE'
+        AND NOT jsonb_exists(coalesce(source_json, '{}'::jsonb), 'taskContributionId')
+    </update>
+
+    <sql id="contributionProjection">
+        jsonb_build_object('id', id::text, 'recordId', record_id, 'operation', operation,
+        'time', occurred_at, 'actor', creator, 'before', before_json, 'after', after_json,
+        'source', CASE WHEN jsonb_exists(source_json, 'relatedEvents')
+            THEN (source_json - 'relatedEvents') || jsonb_build_object('relatedUpdate', true)
+            ELSE source_json END,
+        'fields', definition_json -&gt; 'fields', 'detailFields', definition_json -&gt; 'details')::text
+    </sql>
+
+    <select id="contributionEvents" resultType="string" useCache="false" flushCache="true">
+        SELECT <include refid="contributionProjection"/>
+        FROM public.nocode_record_history
+        WHERE deleted = 0 AND application_id = CAST(#{app} AS bigint)
+        AND object_id = CAST(#{object} AS bigint) AND record_id = #{record}
+        AND source_json -&gt;&gt; 'taskContributionId' = #{contribution}
+        ORDER BY id
+    </select>
+
+    <select id="revisionEvents" resultType="string" useCache="false" flushCache="true">
+        SELECT <include refid="contributionProjection"/>
+        FROM public.nocode_record_history
+        WHERE deleted = 0 AND application_id = CAST(#{app} AS bigint)
+        AND object_id = CAST(#{object} AS bigint) AND record_id = #{record}
+        AND after_json -&gt;&gt; 'revision' = #{revision}
+        ORDER BY id LIMIT 2
+    </select>
+    <select id="lock" parameterType="java.lang.String" resultType="java.lang.String" useCache="true" flushCache="false">
+        SELECT pg_advisory_xact_lock(7418, hashtext(#{object}))
+    </select>
+
+    <select id="transactionCheckpoint" resultType="_long" useCache="false" flushCache="true">
+        SELECT coalesce(max(id), 0)
+        FROM public.nocode_record_history
+        WHERE written_txid = pg_current_xact_id()
+        AND deleted = 0
+    </select>
+
+    <select
+        id="transactionEvents"
+        parameterType="org.apache.ibatis.binding.MapperMethod$ParamMap"
+        resultType="java.lang.String"
+        useCache="false"
+        flushCache="true">
+        SELECT jsonb_build_object('eventId', id::text, 'objectId', object_id::text, 'recordId', record_id, 'operationId',
+        operation_id::text)::text
+        FROM public.nocode_record_history
+        WHERE written_txid = pg_current_xact_id()
+        AND deleted = 0
+        AND id &gt; #{checkpoint}
+        AND application_id = CAST(#{app} AS bigint)
+        AND creator = #{actor}
+        AND operation &lt;&gt; 'BASELINE'
+        ORDER BY id
+    </select>
+
+    <select id="coverage" parameterType="java.lang.String" resultType="java.lang.String" useCache="true" flushCache="false">
+        SELECT covered_from::text
+        FROM public.nocode_record_history_head
+        WHERE object_id = CAST(#{object} AS bigint)
+        AND deleted = 0
+    </select>
+
+    <insert id="start" parameterType="org.apache.ibatis.binding.MapperMethod$ParamMap" flushCache="true">
+        INSERT INTO public.nocode_record_history_head(object_id, creator, updater)
+        VALUES (CAST(#{object} AS bigint), #{actor}, #{actor})
+    </insert>
+
+    <insert id="append" parameterType="org.apache.ibatis.binding.MapperMethod$ParamMap" flushCache="true">
+        INSERT INTO public.nocode_record_history(object_id, record_id, application_id, operation, before_json,
+        after_json, definition_json, creator, updater, operation_id, policy_version, source_json)
+        VALUES (CAST(#{object} AS bigint), #{record}, CAST(#{app} AS bigint), #{operation}, CAST(#{before} AS jsonb),
+        CAST(#{after} AS jsonb), CAST(#{definition} AS jsonb), #{actor}, #{actor}, CAST(#{operationId} AS uuid),
+        #{policyVersion}, CAST(#{source} AS jsonb))
+    </insert>
+
+    <select id="view" resultType="java.lang.String" useCache="false" flushCache="true">
+        SELECT jsonb_build_object('end', clock_timestamp(), 'visibility', pg_current_snapshot()::text)::text
+    </select>
+
+    <select
+        id="events"
+        parameterType="org.apache.ibatis.binding.MapperMethod$ParamMap"
+        resultType="java.lang.String"
+        useCache="false"
+        flushCache="true">
+        SELECT jsonb_build_object('id', id::text, 'recordId', record_id, 'operation', operation, 'time', occurred_at,
+            'actor', creator, 'before', before_json, 'after', after_json, 'source', CASE
+        WHEN jsonb_exists(source_json, 'relatedEvents') THEN(source_json - 'relatedEvents') || jsonb_build_object('relatedUpdate',
+        true)
+        ELSE source_json
+        END
+        <if test="fields">
+            , 'fields',(
+            SELECT coalesce(jsonb_agg(jsonb_build_object('id', f -&gt;&gt; 'id', 'name', f -&gt;&gt; 'name')), '[]'::jsonb)
+            FROM jsonb_array_elements(definition_json -&gt; 'fields') f), 'detailFields',(
+            SELECT coalesce(jsonb_agg(jsonb_build_object('id', d -&gt;&gt; 'id', 'name', d -&gt;&gt; 'name', 'fields',(
+            SELECT coalesce(jsonb_agg(jsonb_build_object('id', f -&gt;&gt; 'id', 'name', f -&gt;&gt; 'name')), '[]'::jsonb)
+            FROM jsonb_array_elements(d -&gt; 'fields') f))), '[]'::jsonb)
+            FROM jsonb_array_elements(definition_json -&gt; 'details') d)
+        </if>
+        )::text
+        FROM public.nocode_record_history
+        WHERE object_id = CAST(#{object} AS bigint)
+        AND deleted = 0
+        AND occurred_at &lt;= CAST(#{end} AS timestamptz)
+        AND pg_visible_in_snapshot(written_txid, CAST(#{visibility} AS pg_snapshot))
+        AND occurred_at &gt;= CAST(#{start} AS timestamptz)
+        AND operation &lt;&gt; 'BASELINE'
+        AND (occurred_at, id) &gt;(CAST(#{cursorTime} AS timestamptz), #{cursorId})
+        <if test="records != null">
+            AND record_id IN
+            <foreach collection="records" item="record" open="(" separator="," close=")">#{record}</foreach>
+        </if>
+        ORDER BY occurred_at, id
+        LIMIT 1000
+    </select>
+
+    <select
+        id="snapshotBatch"
+        parameterType="org.apache.ibatis.binding.MapperMethod$ParamMap"
+        resultType="java.lang.String"
+        useCache="false"
+        flushCache="true">
+        SELECT jsonb_build_object('recordId', record_id, 'row', after_json)::text
+        FROM (
+        SELECT DISTINCT
+        ON (record_id) record_id, after_json
+        FROM public.nocode_record_history
+        WHERE object_id = CAST(#{object} AS bigint)
+        AND deleted = 0
+        AND occurred_at &lt;= CAST(#{end} AS timestamptz)
+        AND pg_visible_in_snapshot(written_txid, CAST(#{visibility} AS pg_snapshot))
+        AND record_id &gt; #{cursor}
+        ORDER BY record_id, occurred_at DESC, id DESC
+        LIMIT 1000) s
+    </select>
+
+    <select
+        id="snapshots"
+        parameterType="org.apache.ibatis.binding.MapperMethod$ParamMap"
+        resultType="java.lang.String"
+        useCache="false"
+        flushCache="true">
+        SELECT jsonb_build_object('recordId', record_id, 'row', after_json, 'fields',(
+        SELECT coalesce(jsonb_agg(jsonb_build_object('id', f -&gt;&gt; 'id', 'name', f -&gt;&gt; 'name')), '[]'::jsonb)
+        FROM jsonb_array_elements(definition_json -&gt; 'fields') f))::text
+        FROM (
+        SELECT DISTINCT
+        ON (record_id) record_id, after_json, definition_json
+        FROM public.nocode_record_history
+        WHERE object_id = CAST(#{object} AS bigint)
+        AND deleted = 0
+        AND occurred_at &lt;= CAST(#{end} AS timestamptz)
+        AND pg_visible_in_snapshot(written_txid, CAST(#{visibility} AS pg_snapshot))
+        <if test="records != null">
+            AND record_id IN
+            <foreach collection="records" item="record" open="(" separator="," close=")">#{record}</foreach>
+        </if>
+        ORDER BY record_id, occurred_at DESC, id DESC) s
+    </select>
+
+    <select
+        id="taskEvents"
+        parameterType="org.apache.ibatis.binding.MapperMethod$ParamMap"
+        resultType="java.lang.String"
+        useCache="true"
+        flushCache="false">
+        SELECT jsonb_build_object('id', id::text, 'recordId', record_id, 'time', occurred_at, 'operation', operation,
+            'before', before_json, 'after', after_json, 'related', jsonb_exists(source_json, 'relatedEvents'))::text
+        FROM public.nocode_record_history
+        WHERE deleted = 0
+        AND creator = #{actor}
+        AND application_id = CAST(#{app} AS bigint)
+        AND object_id = CAST(#{object} AS bigint)
+        AND source_json -&gt;&gt; 'kind' = 'TASK_ENTRY'
+        AND source_json -&gt;&gt; 'entryId' = #{entry}
+        AND id &lt; #{before}
+        ORDER BY id DESC
+        LIMIT 100
+    </select>
+
+    <select
+        id="createdFromTask"
+        parameterType="org.apache.ibatis.binding.MapperMethod$ParamMap"
+        resultType="_boolean"
+        useCache="true"
+        flushCache="false">
+        SELECT EXISTS(
+        SELECT 1
+        FROM public.nocode_record_history
+        WHERE deleted = 0
+        AND creator = #{actor}
+        AND application_id = CAST(#{app} AS bigint)
+        AND object_id = CAST(#{object} AS bigint)
+        AND record_id = #{record}
+        AND operation = 'CREATE'
+        AND source_json -&gt;&gt; 'kind' = 'TASK_ENTRY'
+        AND source_json -&gt;&gt; 'entryId' = #{entry})
+    </select>
+
+    <!-- 初次历史覆盖从数据库整表生成，沿用调用方固定对象定义与原事务范围。 -->
+    <insert id="baseline" parameterType="org.apache.ibatis.binding.MapperMethod$ParamMap">
+        INSERT INTO public.nocode_record_history(
+        object_id, record_id, operation, occurred_at, after_json, definition_json, creator, updater
+        )
+        SELECT CAST(#{object} AS bigint), r.payload::jsonb-&gt;&gt;'id', 'BASELINE', h.covered_from,
+        r.payload::jsonb, CAST(#{definition} AS jsonb), #{actor}, #{actor}
+        FROM (
+        SELECT
+        <include refid="com.richuang.os.nocode.runtime.dal.mapper.RecordMapper.recordProjection">
+            <property name="recordValue" value="statement"/>
+            <property name="revisionSource" value="to_jsonb(t)"/>
+        </include>
+        FROM
+        <include refid="com.richuang.os.nocode.runtime.dal.mapper.RecordMapper.recordTable">
+            <property name="recordValue" value="statement"/>
+        </include>
+        t
+        <include refid="com.richuang.os.nocode.runtime.dal.mapper.RecordMapper.recordWhere">
+            <property name="recordValue" value="statement"/>
+            <property name="prefix" value=""/>
+            <property name="prefixExpression" value="''"/>
+            <property name="alias" value="t"/>
+        </include>
+        ) AS r(payload)
+        CROSS JOIN public.nocode_record_history_head h
+        WHERE h.object_id = CAST(#{object} AS bigint)
+    </insert>
+</mapper>

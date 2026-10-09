@@ -1,0 +1,3 @@
+com.richuang.os.framework.mq.redis.config.OsRedisMQProducerAutoConfiguration
+com.richuang.os.framework.mq.redis.config.OsRedisMQConsumerAutoConfiguration
+com.richuang.os.framework.mq.rabbitmq.config.OsRabbitMQAutoConfiguration

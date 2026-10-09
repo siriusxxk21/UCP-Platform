@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>com.richuang</groupId>
+        <artifactId>os-nocode</artifactId>
+        <version>${revision}</version>
+    </parent>
+    <artifactId>os-nocode-web</artifactId>
+    <packaging>jar</packaging>
+    <dependencies>
+        <dependency>
+            <groupId>com.richuang</groupId>
+            <artifactId>os-nocode-workflow</artifactId>
+            <version>${revision}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.richuang</groupId>
+            <artifactId>os-nocode-runtime</artifactId>
+            <version>${revision}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.richuang</groupId>
+            <artifactId>os-spring-boot-starter-excel</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.richuang</groupId>
+            <artifactId>os-nocode-schema</artifactId>
+            <version>${revision}</version>
+        </dependency>
+        <!-- 业务文件内容读取复用文件底座的范围请求与响应头工具 -->
+        <dependency>
+            <groupId>com.richuang</groupId>
+            <artifactId>os-module-infra</artifactId>
+            <version>${revision}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.richuang</groupId>
+            <artifactId>os-spring-boot-starter-security</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.richuang</groupId>
+            <artifactId>os-spring-boot-starter-web</artifactId>
+        </dependency>
+    </dependencies>
+</project>

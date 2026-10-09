@@ -1,0 +1,51 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+# 主工程只使用 pnpm；独立 page-designer / tools 的 npm 锁文件仍须提交。
+/package-lock.json
+/npm-shrinkwrap.json
+/yarn.lock
+.pnpm-store/
+dist-test
+dist
+dist-ssr
+public/nocode-designer/
+*.local
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# 自动生成的文件（不入 git）
+src/auto-imports.d.ts
+.eslintrc-auto-import.json
+
+# Playwright 测试产物（集中存放于 tests/ 下）
+tests/test-results/
+tests/playwright-report/
+tests/blob-report/
+tests/.auth/
+playwright/.cache/
+# 当前开发环境的验收截图、日志和运行清单；可复用脚本仍放 tools 并纳入版本管理。
+.work/
+# 本地测试环境配置（含敏感账号信息，不入 git）
+.env.test.local
+
+# 四中心可复用回归源码；覆盖仓库上层对 *.test.* 的宽泛忽略。
+!tools/four-center-regression/*.test.ts
+# 手机断点回归属于可复用源码。
+!src/composables/useCompactViewport.test.ts

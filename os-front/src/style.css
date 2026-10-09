@@ -1,0 +1,665 @@
+/* 全局基础样式 */
+:root {
+  --brand: #4338ca;
+  --brand-hover: #5b51d8;
+  --brand-active: #4c42b8;
+  --brand-dark: #1e1b4b;
+  --brand-light: #eef2ff;
+  --brand-table: #f5f3ff;
+  --color-bg-container: #fff;
+  --font-size-report-metric: 28px;
+  --bg-page: #f5f6fa;
+  --success: #10b981;
+  --success-bg: #ecfdf5;
+  --warning: #f59e0b;
+  --warning-bg: #fffbeb;
+  --error: #ef4444;
+  --error-bg: #fef2f2;
+  --neutral: #6b7280;
+  --neutral-bg: #f3f4f6;
+  --text-primary: #1f2937;
+  --text-secondary: #6b7280;
+  --text-tertiary: #9ca3af;
+  --text-placeholder: #9ca3af;
+  --border: #e5e7eb;
+  --border-hover: #c7d2fe;
+  --control-hover-bg: #f5f3ff;
+  --control-active-bg: #eef2ff;
+  --control-height: 32px;
+  --control-height-sm: 28px;
+  --control-height-lg: 40px;
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 12px;
+  --spacing-lg: 16px;
+  --spacing-xl: 24px;
+  --spacing-2xl: 32px;
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.03);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.06);
+  --shadow-popup: 0 10px 28px rgba(15, 23, 42, 0.1), 0 4px 10px rgba(15, 23, 42, 0.06);
+  --radius: 8px;
+  --radius-sm: 6px;
+  --table-header-font-size: 15px;
+  --table-body-font-size: 14px;
+  --table-font-sm: 13px;
+  /* 数据表格（统计的透视表、运行端数据视图列表）共用的字号与间距：取透视表实际生效的值，两处要改一起改。 */
+  --data-table-font-size: 13px;
+  --data-table-line-height: 1.5;
+  --data-table-cell-padding: 6px 10px;
+  --data-table-header-font-weight: 600;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+  font-family:
+    'Helvetica Neue', Helvetica, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', '微软雅黑', Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  color: var(--text-primary);
+  background: var(--bg-page);
+}
+
+#app {
+  height: 100%;
+}
+
+/* 全局卡片样式优化 */
+.ant-card {
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
+  transition: all 0.2s ease;
+}
+
+.ant-card:hover {
+  box-shadow: var(--shadow-md);
+}
+
+.ant-card-head {
+  border-bottom: 1px solid #f3f4f6;
+  padding: 16px 20px;
+}
+
+.ant-card-body {
+  padding: 20px;
+}
+
+/* 全局按钮样式优化 */
+.ant-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: var(--control-height);
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1;
+  transition: all 0.2s ease;
+}
+
+.ant-btn-lg {
+  height: var(--control-height-lg);
+  padding-inline: 18px;
+  font-size: 14px;
+}
+
+.ant-btn-primary {
+  background: var(--brand);
+  border-color: var(--brand);
+}
+
+.ant-btn-primary:hover {
+  background: #3730a3;
+  border-color: #3730a3;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(67, 56, 202, 0.35);
+}
+
+/* 全局输入框样式优化 */
+.ant-input,
+.ant-input-affix-wrapper,
+.ant-select .ant-select-selector,
+.ant-picker {
+  border-radius: var(--radius-sm);
+  border-color: var(--border);
+  color: var(--text-primary);
+  font-size: 13px;
+  font-family: inherit;
+  transition: all 0.2s ease;
+}
+
+.ant-input:not(textarea),
+.ant-input-affix-wrapper,
+.ant-select-single .ant-select-selector,
+.ant-picker {
+  height: var(--control-height);
+  min-height: var(--control-height);
+}
+
+.ant-input-sm:not(textarea),
+.ant-input-affix-wrapper-sm,
+.ant-select-single.ant-select-sm .ant-select-selector,
+.ant-picker-small {
+  height: var(--control-height-sm);
+  min-height: var(--control-height-sm);
+  line-height: var(--control-height-sm);
+}
+
+.ant-input-lg:not(textarea),
+.ant-input-affix-wrapper-lg,
+.ant-select-single.ant-select-lg .ant-select-selector,
+.ant-picker-large {
+  height: var(--control-height-lg);
+  min-height: var(--control-height-lg);
+  line-height: var(--control-height-lg);
+}
+
+/* 多行文本开启清除按钮时也使用 affix wrapper，不能套用单行输入框的固定高度。 */
+.ant-input-affix-wrapper-textarea-with-clear-btn {
+  height: auto;
+  min-height: 0;
+}
+
+.ant-input:hover,
+.ant-input-affix-wrapper:hover,
+.ant-select:not(.ant-select-disabled):hover .ant-select-selector,
+.ant-picker:hover {
+  border-color: var(--border-hover);
+}
+
+.ant-input:focus,
+.ant-input-focused,
+.ant-input-affix-wrapper-focused,
+.ant-select-focused .ant-select-selector,
+.ant-picker-focused {
+  border-color: var(--brand);
+  box-shadow: 0 0 0 2px rgba(67, 56, 202, 0.12);
+}
+
+.ant-input::placeholder,
+.ant-input-affix-wrapper input::placeholder,
+.ant-select-selection-placeholder,
+.ant-picker-input > input::placeholder {
+  color: var(--text-placeholder) !important;
+  font-size: 13px;
+}
+
+.ant-input-affix-wrapper {
+  display: inline-flex;
+  align-items: center;
+  padding-block: 0 !important;
+}
+
+.ant-input-affix-wrapper > input.ant-input {
+  height: auto;
+  min-height: 0;
+  padding-block: 0;
+  line-height: normal;
+  font-family: inherit;
+  font-size: inherit;
+}
+
+.ant-input:not(textarea) {
+  display: inline-flex;
+  align-items: center;
+  padding-block: 0;
+}
+
+.ant-select {
+  font-size: 13px;
+  font-family: inherit;
+}
+
+.ant-select-single .ant-select-selector {
+  display: flex !important;
+  align-items: center !important;
+  padding: 0 11px !important;
+  font-family: inherit;
+  font-size: inherit;
+}
+
+/* 多选 / 标签 / 树选择按内容增高，不能沿用单行控件的固定高度和内边距。 */
+.ant-select-multiple .ant-select-selector {
+  height: auto;
+  min-height: var(--control-height);
+  font-family: inherit;
+  font-size: inherit;
+}
+
+.ant-select-multiple.ant-select-sm .ant-select-selector {
+  min-height: var(--control-height-sm);
+}
+
+.ant-select-multiple.ant-select-lg .ant-select-selector {
+  min-height: var(--control-height-lg);
+}
+
+.ant-select-single .ant-select-selector .ant-select-selection-wrap {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  height: 100%;
+}
+
+.ant-select-single .ant-select-selector .ant-select-selection-item,
+.ant-select-single .ant-select-selector .ant-select-selection-placeholder {
+  display: flex;
+  align-items: center;
+  height: 100%;
+  line-height: normal !important;
+  padding-block: 0;
+  color: inherit;
+  font-family: inherit;
+  font-size: inherit;
+}
+
+.ant-select-single .ant-select-selector .ant-select-selection-search {
+  display: flex;
+  align-items: center;
+  inset-inline-start: 11px;
+  inset-inline-end: 28px;
+  height: 100%;
+}
+
+.ant-select-single .ant-select-selector .ant-select-selection-search-input {
+  height: 100% !important;
+  line-height: normal !important;
+  font-family: inherit;
+  font-size: inherit;
+}
+
+.ant-select-single.ant-select-sm .ant-select-selector .ant-select-selection-item,
+.ant-select-single.ant-select-sm .ant-select-selector .ant-select-selection-placeholder,
+.ant-select-single.ant-select-sm .ant-select-selector .ant-select-selection-search {
+  height: var(--control-height-sm);
+}
+
+.ant-select-single.ant-select-sm .ant-select-selector .ant-select-selection-item,
+.ant-select-single.ant-select-sm .ant-select-selector .ant-select-selection-placeholder {
+  font-size: 13px;
+}
+
+.ant-select-single.ant-select-lg .ant-select-selector .ant-select-selection-item,
+.ant-select-single.ant-select-lg .ant-select-selector .ant-select-selection-placeholder,
+.ant-select-single.ant-select-lg .ant-select-selector .ant-select-selection-search {
+  height: var(--control-height-lg);
+}
+
+.ant-select-single.ant-select-sm .ant-select-selector {
+  height: var(--control-height-sm);
+  min-height: var(--control-height-sm);
+}
+
+.ant-select-single.ant-select-lg .ant-select-selector {
+  height: var(--control-height-lg);
+  min-height: var(--control-height-lg);
+}
+
+.ant-select-arrow,
+.ant-picker-suffix,
+.ant-input-prefix,
+.ant-input-suffix {
+  color: var(--text-tertiary);
+}
+
+.ant-select-dropdown,
+.ant-dropdown-menu,
+.ant-picker-dropdown .ant-picker-panel-container {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-popup);
+}
+
+.ant-select-dropdown {
+  padding: 6px;
+  overscroll-behavior: contain;
+}
+
+/* 阻止下拉列表滚动穿透到父级容器 */
+.ant-select-dropdown .rc-virtual-list-holder {
+  overscroll-behavior: contain;
+}
+
+.ant-select-item {
+  min-height: 30px;
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.ant-select-item-option-content {
+  display: flex;
+  align-items: center;
+}
+
+.ant-select-item-option-active:not(.ant-select-item-option-disabled) {
+  background: var(--control-hover-bg);
+}
+
+.ant-select-item-option-selected:not(.ant-select-item-option-disabled) {
+  background: var(--control-active-bg);
+  color: var(--brand);
+  font-weight: 600;
+}
+
+.ant-dropdown-menu {
+  padding: 6px;
+}
+
+.ant-dropdown-menu-item,
+.ant-dropdown-menu-submenu-title {
+  min-height: 30px;
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.ant-dropdown-menu-item:hover,
+.ant-dropdown-menu-submenu-title:hover {
+  background: var(--control-hover-bg);
+  color: var(--brand);
+}
+
+.ant-segmented {
+  padding: 2px;
+  border-radius: var(--radius-sm);
+  background: var(--neutral-bg);
+}
+
+.ant-segmented-item {
+  min-height: 26px;
+  border-radius: 5px;
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.ant-segmented-item-label {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 26px;
+  line-height: 1;
+}
+
+.ant-segmented-item-selected {
+  color: var(--brand);
+}
+
+/* 全局表格样式优化 */
+.ant-table {
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.ant-table-thead > tr > th {
+  background: var(--brand-table);
+  color: var(--brand-dark);
+  font-weight: 600;
+  font-size: var(--table-header-font-size);
+}
+
+.ant-table-tbody > tr > td {
+  font-size: var(--table-body-font-size);
+}
+
+.ant-table-tbody > tr:hover > td {
+  background: #fafbfc;
+}
+
+/* 全局表单样式优化 */
+.ant-form-item {
+  margin-bottom: 16px;
+}
+
+.ant-form-item-label > label {
+  align-items: center;
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.ant-form-item-explain,
+.ant-form-item-extra {
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.ant-input-disabled,
+.ant-input-affix-wrapper-disabled,
+.ant-select-disabled .ant-select-selector,
+.ant-picker-disabled {
+  background: #f9fafb !important;
+  color: var(--text-tertiary) !important;
+  border-color: var(--border) !important;
+}
+
+/* 全局标签样式优化 */
+.ant-tag {
+  border-radius: 12px;
+  padding: 2px 10px;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 20px;
+}
+
+/* 全局模态框样式优化 */
+.ant-modal-content {
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.ant-modal-header {
+  border-bottom: 1px solid #f3f4f6;
+  padding-bottom: 12px;
+}
+
+.ant-modal-footer {
+  border-top: 1px solid #f3f4f6;
+  padding: 12px 24px;
+}
+
+/* 长表单共用视口内滚动；标题和提交区不随正文滚走。全屏设计器保持自己的布局。 */
+.os-scroll-modal .ant-modal {
+  top: 24px;
+  padding-bottom: 0;
+  max-width: calc(100vw - 32px);
+}
+
+.os-scroll-modal .ant-modal-content {
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100dvh - 48px);
+  height: var(--os-modal-height, auto);
+}
+
+.os-scroll-modal .ant-modal-header,
+.os-scroll-modal .ant-modal-footer {
+  flex: none;
+}
+
+.os-scroll-modal .ant-modal-body {
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  padding: 4px 2px;
+}
+
+.os-scroll-modal .ant-modal-footer {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 12px 0 0;
+}
+
+.os-scroll-modal .ant-modal-footer > .ant-btn + .ant-btn {
+  margin-inline-start: 0;
+}
+
+/* 全局抽屉样式优化 */
+.ant-drawer-content {
+  background: #fff;
+}
+
+.ant-drawer-header {
+  padding: 16px 24px;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.ant-drawer-title {
+  color: var(--text-primary);
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.ant-drawer-body {
+  padding: 20px 24px;
+}
+
+.ant-popover-inner,
+.ant-tooltip-inner {
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+}
+
+/* 滚动条样式优化 */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #bfbfbf;
+}
+
+/* 全局 Spin 加载遮罩层（嵌套模式）：flex 实现图标+文字水平垂直居中 */
+.ant-spin-nested-loading > .ant-spin.ant-spin-spinning {
+  max-height: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 嵌套模式下恢复 dot 为 static，交由 flex 居中（不影响独立 spinner） */
+.ant-spin-nested-loading > .ant-spin.ant-spin-spinning .ant-spin-dot {
+  position: static !important;
+  margin: 0 !important;
+}
+
+/* 加载文字样式 */
+.ant-spin-text {
+  margin-top: 12px;
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+/* 消息通知样式优化 */
+.message-notification-item {
+  cursor: pointer;
+  transition: all 0.2s ease !important;
+}
+
+.message-notification-item:hover {
+  background-color: #fafafa !important;
+  box-shadow: var(--shadow-md) !important;
+  transform: translateX(-4px);
+}
+
+/* 提取自工作项模块的全局通用原生按钮样式 */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  border: none;
+  font-family: inherit;
+  user-select: none;
+  background: none;
+}
+.btn-default {
+  background: #ffffff;
+  color: #374151;
+  border: 1px solid #d1d5db;
+}
+.btn-default:hover {
+  border-color: var(--brand);
+  color: var(--brand);
+  background: #f9fafb;
+}
+.btn-default:active {
+  border-color: #a5b4fc;
+  background: #f3f4f6;
+}
+.btn-primary {
+  background: var(--brand);
+  color: #ffffff;
+  border: 1px solid transparent;
+}
+.btn-primary:hover {
+  background: var(--brand-hover);
+  color: #ffffff !important;
+}
+.btn-primary:active {
+  background: var(--brand-active);
+  color: #ffffff !important;
+}
+.icon-sm {
+  font-size: 13px;
+  display: inline-flex;
+  align-items: center;
+}
+
+/* 全局原生卡片布局组件样式，统一 Overview 页面美学 */
+.card {
+  background: #ffffff;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow 0.2s ease;
+}
+.card:hover {
+  box-shadow: var(--shadow-md);
+}
+.card-header {
+  height: 48px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 var(--spacing-lg);
+  border-bottom: 1px solid var(--border);
+}
+.card-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.card-body {
+  padding: var(--spacing-lg);
+}
+.mb-16 {
+  margin-bottom: 16px;
+}

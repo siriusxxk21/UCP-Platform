@@ -1,0 +1,98 @@
+.dict-manage {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  height: 100%;
+  min-height: 0;
+  min-width: 0;
+}
+
+.dict-table {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+}
+
+.dict-manage .os-table-page__search-basic {
+  overflow-x: auto;
+}
+
+.dict-manage .os-table-page__search-form .ant-form-inline {
+  flex-wrap: nowrap;
+  gap: 0 8px;
+  white-space: nowrap;
+}
+
+.dict-manage .os-table-page__search-form .ant-form-item {
+  flex: 0 0 auto;
+  margin-inline-end: 0;
+}
+
+.dict-search-input {
+  width: 180px;
+}
+
+.dict-manage .dict-search-status {
+  width: 120px;
+}
+
+.dict-actions {
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
+}
+
+.dict-actions .ant-btn-link {
+  padding: 0 6px;
+  height: auto;
+  font-size: var(--table-body-font-size, 14px);
+  font-weight: 500;
+}
+
+.dict-actions > * + * {
+  border-left: 1px solid #e5e7eb;
+  margin-left: 6px;
+  padding-left: 12px;
+}
+
+.dict-actions .anticon {
+  font-size: 13px;
+}
+
+.dict-context {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  background: #fff;
+  border-radius: 8px;
+  min-width: 0;
+}
+
+.dict-context-name {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dict-context-code {
+  color: #6b7280;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dict-manage .os-table-page__table .ant-pagination {
+  margin: 4px 0 0;
+}
+
+.dict-actions .ant-btn-link:not(.ant-btn-dangerous):not([disabled]) {
+  color: #4338ca;
+}
+
+.dict-manage .ant-table-cell .ant-tag {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  vertical-align: middle;
+}

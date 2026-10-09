@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!-- 业务目录绑定读写；身份列空串表示该层级不适用，全部使用绑定参数。 -->
+<mapper namespace="com.richuang.os.nocode.runtime.dal.mapper.BizDirectoryBindingMapper">
+
+    <select id="lockIdentity"
+            parameterType="org.apache.ibatis.binding.MapperMethod$ParamMap"
+            resultType="int">
+        SELECT 1
+        FROM (
+            SELECT pg_advisory_xact_lock(
+                hashtextextended(
+                    concat_ws('|', #{objectId}, #{recordId}, #{detailId}, #{rowId}, #{fieldId}),
+                    0))
+        ) locked
+    </select>
+
+    <select id="selectByIdentity"
+            parameterType="org.apache.ibatis.binding.MapperMethod$ParamMap"
+            resultType="com.richuang.os.nocode.runtime.dal.dataobject.BizDirectoryBindingDO">
+        SELECT id, object_id, record_id, detail_id, row_id, field_id,
+               space_id, entry_id, rule_version, group_keys,
+               creator, create_time, updater, update_time, deleted
+        FROM public.nocode_biz_directory_binding
+        WHERE object_id = #{objectId}
+        AND record_id = #{recordId}
+        AND detail_id = #{detailId}
+        AND row_id = #{rowId}
+        AND field_id = #{fieldId}
+        AND deleted = 0
+    </select>
+
+    <select id="selectListByRecord"
+            parameterType="org.apache.ibatis.binding.MapperMethod$ParamMap"
+            resultType="com.richuang.os.nocode.runtime.dal.dataobject.BizDirectoryBindingDO">
+        SELECT id, object_id, record_id, detail_id, row_id, field_id,
+               space_id, entry_id, rule_version, group_keys,
+               creator, create_time, updater, update_time, deleted
+        FROM public.nocode_biz_directory_binding
+        WHERE object_id = #{objectId}
+        AND record_id = #{recordId}
+        AND deleted = 0
+    </select>
+
+    <select id="selectListByRow"
+            parameterType="org.apache.ibatis.binding.MapperMethod$ParamMap"
+            resultType="com.richuang.os.nocode.runtime.dal.dataobject.BizDirectoryBindingDO">
+        SELECT id, object_id, record_id, detail_id, row_id, field_id,
+               space_id, entry_id, rule_version, group_keys,
+               creator, create_time, updater, update_time, deleted
+        FROM public.nocode_biz_directory_binding
+        WHERE object_id = #{objectId}
+        AND record_id = #{recordId}
+        AND detail_id = #{detailId}
+        AND row_id = #{rowId}
+        AND deleted = 0
+    </select>
+
+    <select id="countRecordDirectories"
+            parameterType="org.apache.ibatis.binding.MapperMethod$ParamMap"
+            resultType="int">
+        SELECT COUNT(*)
+        FROM public.nocode_biz_directory_binding
+        WHERE object_id = #{objectId}
+        AND detail_id = ''
+        AND row_id = ''
+        AND field_id = ''
+        AND deleted = 0
+    </select>
+
+</mapper>

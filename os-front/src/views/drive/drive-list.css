@@ -1,0 +1,137 @@
+/**
+ * 网盘列表页样式
+ *
+ * 网盘各列表都由 OsTablePage 渲染，这里只补页面容器、检索区控件的统一宽度，
+ * 以及操作列的分隔线，与数据中心、系统管理的表格保持同一观感。
+ */
+.drive-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  height: 100%;
+  min-height: 0;
+  min-width: 0;
+}
+
+.drive-table {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+}
+
+.drive-page .os-table-page__search-basic {
+  overflow-x: auto;
+}
+
+.drive-page .os-table-page__search-form .ant-form-inline {
+  flex-wrap: wrap;
+  gap: var(--spacing-sm);
+}
+
+.drive-page .os-table-page__search-form .ant-form-item {
+  flex: 0 0 auto;
+  margin-inline-end: 0;
+}
+
+.drive-search-input,
+.drive-search-select {
+  width: 180px;
+}
+
+.drive-actions {
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
+}
+
+.drive-actions .ant-btn-link {
+  height: auto;
+  padding: 0 6px;
+  font-size: var(--table-body-font-size, 14px);
+  font-weight: 500;
+}
+
+.drive-actions > * + * {
+  margin-left: 6px;
+  padding-left: 12px;
+  border-left: 1px solid var(--border);
+}
+
+.drive-actions .anticon {
+  font-size: 13px;
+}
+
+/* 名称列：图标与文本同基线，长名称截断而不是撑开列宽 */
+.drive-name {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  min-width: 0;
+  max-width: 100%;
+}
+
+.drive-name--link {
+  cursor: pointer;
+  color: var(--brand);
+  border: 0;
+  padding: 0;
+  background: transparent;
+  font: inherit;
+  text-align: left;
+}
+
+.drive-name--link:hover .drive-name__text {
+  text-decoration: underline;
+}
+
+.drive-name--link:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: var(--spacing-xs);
+  border-radius: var(--radius-sm);
+}
+
+/* 标签页列表仍需接续父容器的高度链路，否则窄屏上表格会顶出页面。 */
+.drive-page > .ant-tabs,
+.drive-page > .ant-tabs > .ant-tabs-content-holder,
+.drive-page > .ant-tabs > .ant-tabs-content-holder > .ant-tabs-content,
+.drive-page > .ant-tabs .ant-tabs-tabpane-active {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+}
+
+.drive-page > .ant-tabs > .ant-tabs-content-holder,
+.drive-page > .ant-tabs .ant-tabs-tabpane-active {
+  display: flex;
+  flex-direction: column;
+}
+
+.drive-name__icon {
+  color: var(--brand);
+  font-size: 15px;
+}
+
+.drive-name__text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.drive-subject-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-xs);
+}
+
+.drive-quota {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+}
+
+.drive-quota__text {
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 16px;
+}

@@ -1,0 +1,380 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.richuang.os.nocode.runtime.dal.mapper.BizFileBrowseMapper">
+    <!--
+        业务文件浏览：以记录目录绑定（规则版本、业务分组键）与业务附件绑定为逻辑目录树，
+        记录侧范围条件复用 recordWhere（含记录授权谓词），附件侧字段/明细安全集由服务编译。
+        受限分组的键以原始值摘要参与匹配与返回，不返回绑定表保存的目录名称。
+        entryId 仅由内容读取设置：在位置身份之外精确匹配单个绑定行，浏览语句不设置。
+        entryIds 仅由收藏/最近访问列表设置：按节点集合重取当前可见文件，节点身份由业务标记提供，
+        可见性仍由本方语句的授权条件决定。
+    -->
+    <sql id="browseFrom">
+        FROM
+        <include refid="com.richuang.os.nocode.runtime.dal.mapper.RecordMapper.recordTable">
+            <property name="recordValue" value="base"/>
+        </include>
+        t
+        JOIN public.nocode_biz_directory_binding rd
+        ON rd.object_id = #{objectId}
+        AND rd.record_id = t.${@com.richuang.os.nocode.runtime.dal.support.RuntimeSqlParameters@quote(base.keyColumn)}::text
+        AND rd.detail_id = '' AND rd.row_id = '' AND rd.field_id = ''
+        AND rd.deleted = 0
+        JOIN public.nocode_biz_attachment_binding ab
+        ON ab.object_id = #{objectId}
+        AND ab.record_id = t.${@com.richuang.os.nocode.runtime.dal.support.RuntimeSqlParameters@quote(base.keyColumn)}::text
+        AND ab.deleted = 0
+        AND ab.state = 'ACTIVE'
+        AND (
+        (ab.detail_id = '' AND ab.field_id IN (SELECT jsonb_array_elements_text(CAST(#{visibleFields} AS jsonb))))
+        OR (ab.detail_id &lt;&gt; '' AND ab.detail_id IN (SELECT jsonb_array_elements_text(CAST(#{visibleDetails} AS jsonb))))
+        )
+        <include refid="com.richuang.os.nocode.runtime.dal.mapper.RecordMapper.recordWhere">
+            <property name="recordValue" value="base"/>
+            <property name="prefix" value="base."/>
+            <property name="prefixExpression" value="'base.'"/>
+            <property name="alias" value="t"/>
+        </include>
+    </sql>
+
+    <sql id="versionFilter">
+        <if test="ruleVersion != null">AND rd.rule_version = #{ruleVersion}</if>
+    </sql>
+
+    <!--
+        受限分组只接受服务端令牌：字段不可读时按原始键摘要匹配与返回，提供原始值也无法命中。
+        空值分组没有名称来源，按原始空键参与，避免把未填写误标为受限。
+    -->
+    <sql id="groupFilter">
+        <foreach collection="groups" item="_group">
+            AND
+            <choose>
+                <when test="_group.hashed">
+                    CASE WHEN split_part(rd.group_keys, '|', #{_group.level}) = '' THEN ''
+                    ELSE md5(split_part(rd.group_keys, '|', #{_group.level})) END
+                </when>
+                <otherwise>split_part(rd.group_keys, '|', #{_group.level})</otherwise>
+            </choose>
+            = #{_group.key}
+        </foreach>
+    </sql>
+
+    <sql id="groupColumn">
+        <choose>
+            <when test="directoryHashed">
+                CASE WHEN split_part(rd.group_keys, '|', #{directoryLevel}) = '' THEN ''
+                ELSE md5(split_part(rd.group_keys, '|', #{directoryLevel})) END
+            </when>
+            <otherwise>split_part(rd.group_keys, '|', #{directoryLevel})</otherwise>
+        </choose>
+    </sql>
+
+    <sql id="identityFilter">
+        <if test="recordId != null">AND ab.record_id = #{recordId}</if>
+        <if test="detailId != null">AND ab.detail_id = #{detailId}</if>
+        <if test="rowId != null">AND ab.row_id = #{rowId}</if>
+        <if test="fieldId != null">AND ab.field_id = #{fieldId}</if>
+        <if test="entryId != null">AND ab.entry_id = #{entryId}</if>
+        <if test="entryIds != null and entryIds.size() > 0">
+            AND ab.entry_id IN
+            <foreach collection="entryIds" item="_entryId" open="(" separator="," close=")">#{_entryId}</foreach>
+        </if>
+    </sql>
+
+    <!-- 名称与计数共用同一过滤：先沿完整业务授权，再按绑定版本匹配可见标题。 -->
+    <sql id="searchFilter">
+        <if test="nameLike != null">
+            AND (ab.file_name ILIKE #{nameLike} ESCAPE '!'
+            <foreach collection="searchTitles" item="_title">
+                <if test="_title.fields.size() > 0 or _title.parts.size() > 0">
+                    OR (rd.rule_version = #{_title.ruleVersion} AND (
+                    FALSE
+                    <foreach collection="_title.fields" item="_searchField">
+                        OR to_jsonb(t)-&gt;&gt;${@com.richuang.os.nocode.runtime.dal.support.RuntimeSqlParameters@literal(_searchField.column)} ILIKE #{nameLike} ESCAPE '!'
+                    </foreach>
+                    <if test="_title.parts.size() > 0">
+                        OR concat(
+                        <foreach collection="_title.parts" item="_part" separator=",">
+                            <choose>
+                                <when test="_part.column != null">COALESCE(to_jsonb(t)-&gt;&gt;${@com.richuang.os.nocode.runtime.dal.support.RuntimeSqlParameters@literal(_part.column)}, '')</when>
+                                <otherwise>CAST(#{_part.literal} AS text)</otherwise>
+                            </choose>
+                        </foreach>
+                        ) ILIKE #{nameLike} ESCAPE '!'
+                    </if>
+                    ))
+                </if>
+            </foreach>
+            )
+        </if>
+    </sql>
+
+    <sql id="labelValues">
+        <foreach collection="labelFields" item="_label" index="_labelIndex">
+            , 'lf${_labelIndex}', to_jsonb(t)-&gt;&gt;${@com.richuang.os.nocode.runtime.dal.support.RuntimeSqlParameters@literal(_label.column)}
+        </foreach>
+    </sql>
+
+    <select
+        id="ruleVersions"
+        parameterType="com.richuang.os.nocode.runtime.dal.query.BizFileStatement"
+        resultType="java.lang.String"
+        timeout="20">
+        SELECT jsonb_build_object(
+        'ruleVersion', rd.rule_version,
+        'fileCount', count(*),
+        'totalSize', COALESCE(sum(ab.file_size), 0),
+        'recordCount', count(DISTINCT ab.record_id)
+        )::text
+        <include refid="browseFrom"/>
+        GROUP BY rd.rule_version
+        ORDER BY rd.rule_version DESC
+    </select>
+
+    <select
+        id="groupDirectories"
+        parameterType="com.richuang.os.nocode.runtime.dal.query.BizFileStatement"
+        resultType="java.lang.String"
+        timeout="20">
+        SELECT jsonb_build_object(
+        'groupKey', g.group_key,
+        'fileCount', g.file_count,
+        'totalSize', g.total_size,
+        'recordCount', g.record_count
+        )::text
+        FROM (
+        SELECT
+        <include refid="groupColumn"/>
+        AS group_key,
+        count(*) AS file_count,
+        COALESCE(sum(ab.file_size), 0) AS total_size,
+        count(DISTINCT ab.record_id) AS record_count
+        <include refid="browseFrom"/>
+        <include refid="versionFilter"/>
+        <include refid="groupFilter"/>
+        GROUP BY 1
+        ) g
+        ORDER BY g.group_key
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <select
+        id="countGroupDirectories"
+        parameterType="com.richuang.os.nocode.runtime.dal.query.BizFileStatement"
+        resultType="_long"
+        timeout="20">
+        SELECT count(*)
+        FROM (
+        SELECT 1
+        <include refid="browseFrom"/>
+        <include refid="versionFilter"/>
+        <include refid="groupFilter"/>
+        GROUP BY split_part(rd.group_keys, '|', #{directoryLevel})
+        ) x
+    </select>
+
+    <select
+        id="recordDirectories"
+        parameterType="com.richuang.os.nocode.runtime.dal.query.BizFileStatement"
+        resultType="java.lang.String"
+        timeout="20">
+        SELECT jsonb_build_object(
+        'recordId', g.record_id,
+        'fileCount', g.file_count,
+        'totalSize', g.total_size
+        <foreach collection="labelFields" item="_label" index="_labelIndex">
+            , 'lf${_labelIndex}', g.lf${_labelIndex}
+        </foreach>
+        )::text
+        FROM (
+        SELECT
+        t.${@com.richuang.os.nocode.runtime.dal.support.RuntimeSqlParameters@quote(base.keyColumn)}::text AS
+        record_id,
+        count(*) AS file_count,
+        COALESCE(sum(ab.file_size), 0) AS total_size
+        <foreach collection="labelFields" item="_label" index="_labelIndex">
+            , to_jsonb(t)-&gt;&gt;${@com.richuang.os.nocode.runtime.dal.support.RuntimeSqlParameters@literal(_label.column)} AS
+            lf${_labelIndex}
+        </foreach>
+        <include refid="browseFrom"/>
+        <include refid="versionFilter"/>
+        <include refid="groupFilter"/>
+        GROUP BY
+        t.${@com.richuang.os.nocode.runtime.dal.support.RuntimeSqlParameters@quote(base.keyColumn)}
+        <foreach collection="labelFields" item="_label">
+            , to_jsonb(t)-&gt;&gt;${@com.richuang.os.nocode.runtime.dal.support.RuntimeSqlParameters@literal(_label.column)}
+        </foreach>
+        ) g
+        ORDER BY g.record_id DESC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <select
+        id="countRecordDirectories"
+        parameterType="com.richuang.os.nocode.runtime.dal.query.BizFileStatement"
+        resultType="_long"
+        timeout="20">
+        SELECT count(*)
+        FROM (
+        SELECT 1
+        <include refid="browseFrom"/>
+        <include refid="versionFilter"/>
+        <include refid="groupFilter"/>
+        GROUP BY t.${@com.richuang.os.nocode.runtime.dal.support.RuntimeSqlParameters@quote(base.keyColumn)}
+        ) x
+    </select>
+
+    <select
+        id="recordChildren"
+        parameterType="com.richuang.os.nocode.runtime.dal.query.BizFileStatement"
+        resultType="java.lang.String"
+        timeout="20">
+        SELECT jsonb_build_object(
+        'kind', x.kind,
+        'nodeId', x.node_id,
+        'fileCount', x.file_count,
+        'totalSize', x.total_size
+        )::text
+        FROM (
+        SELECT CASE WHEN ab.detail_id = '' THEN 'FIELD' ELSE 'REGION' END AS kind,
+        CASE WHEN ab.detail_id = '' THEN ab.field_id ELSE ab.detail_id END AS node_id,
+        count(*) AS file_count,
+        COALESCE(sum(ab.file_size), 0) AS total_size
+        <include refid="browseFrom"/>
+        <include refid="versionFilter"/>
+        <include refid="groupFilter"/>
+        AND ab.record_id = #{recordId}
+        GROUP BY 1, 2
+        ) x
+        ORDER BY x.kind, x.node_id
+    </select>
+
+    <select
+        id="regionChildren"
+        parameterType="com.richuang.os.nocode.runtime.dal.query.BizFileStatement"
+        resultType="java.lang.String"
+        timeout="20">
+        SELECT jsonb_build_object(
+        'nodeId', x.node_id,
+        'fileCount', x.file_count,
+        'totalSize', x.total_size
+        )::text
+        FROM (
+        SELECT ab.row_id AS node_id,
+        count(*) AS file_count,
+        COALESCE(sum(ab.file_size), 0) AS total_size
+        <include refid="browseFrom"/>
+        <include refid="versionFilter"/>
+        <include refid="groupFilter"/>
+        AND ab.record_id = #{recordId}
+        AND ab.detail_id = #{detailId}
+        GROUP BY ab.row_id
+        ) x
+        ORDER BY x.node_id
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <select
+        id="countRegionChildren"
+        parameterType="com.richuang.os.nocode.runtime.dal.query.BizFileStatement"
+        resultType="_long"
+        timeout="20">
+        SELECT count(DISTINCT ab.row_id)
+        <include refid="browseFrom"/>
+        <include refid="versionFilter"/>
+        <include refid="groupFilter"/>
+        AND ab.record_id = #{recordId}
+        AND ab.detail_id = #{detailId}
+    </select>
+
+    <select
+        id="rowChildren"
+        parameterType="com.richuang.os.nocode.runtime.dal.query.BizFileStatement"
+        resultType="java.lang.String"
+        timeout="20">
+        SELECT jsonb_build_object(
+        'nodeId', x.node_id,
+        'fileCount', x.file_count,
+        'totalSize', x.total_size
+        )::text
+        FROM (
+        SELECT ab.field_id AS node_id,
+        count(*) AS file_count,
+        COALESCE(sum(ab.file_size), 0) AS total_size
+        <include refid="browseFrom"/>
+        <include refid="versionFilter"/>
+        <include refid="groupFilter"/>
+        AND ab.record_id = #{recordId}
+        AND ab.detail_id = #{detailId}
+        AND ab.row_id = #{rowId}
+        GROUP BY ab.field_id
+        ) x
+        ORDER BY x.node_id
+    </select>
+
+    <select
+        id="files"
+        parameterType="com.richuang.os.nocode.runtime.dal.query.BizFileStatement"
+        resultType="java.lang.String"
+        timeout="20">
+        SELECT jsonb_build_object(
+        'fileId', ab.file_id::text,
+        'entryId', ab.entry_id::text,
+        'spaceId', ab.space_id::text,
+        'name', ab.file_name,
+        'size', ab.file_size,
+        'mimeType', ab.mime_type,
+        'submitter', ab.creator,
+        'uploadedAt', to_char(ab.create_time, 'YYYY-MM-DD HH24:MI:SS'),
+        'recordId', ab.record_id,
+        'detailId', ab.detail_id,
+        'rowId', ab.row_id,
+        'fieldId', ab.field_id,
+        'ruleVersion', rd.rule_version,
+        'groupKeys', rd.group_keys
+        <include refid="labelValues"/>
+        )::text
+        <include refid="browseFrom"/>
+        <include refid="versionFilter"/>
+        <include refid="groupFilter"/>
+        <include refid="identityFilter"/>
+        <include refid="searchFilter"/>
+        ORDER BY ab.create_time DESC, ab.id DESC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <select
+        id="countFiles"
+        parameterType="com.richuang.os.nocode.runtime.dal.query.BizFileStatement"
+        resultType="_long"
+        timeout="20">
+        SELECT count(*)
+        <include refid="browseFrom"/>
+        <include refid="versionFilter"/>
+        <include refid="groupFilter"/>
+        <include refid="identityFilter"/>
+        <include refid="searchFilter"/>
+    </select>
+
+    <select
+        id="stats"
+        parameterType="com.richuang.os.nocode.runtime.dal.query.BizFileStatement"
+        resultType="java.lang.String"
+        timeout="20">
+        SELECT jsonb_build_object(
+        'fileCount', count(*),
+        'totalSize', COALESCE(sum(ab.file_size), 0),
+        'recordCount', count(DISTINCT ab.record_id)
+        )::text
+        <include refid="browseFrom"/>
+        <include refid="versionFilter"/>
+    </select>
+
+    <select id="boundObjects" resultType="java.lang.String">
+        SELECT DISTINCT object_id
+        FROM public.nocode_biz_directory_binding
+        WHERE deleted = 0 AND detail_id = '' AND row_id = '' AND field_id = ''
+        ORDER BY object_id
+    </select>
+
+</mapper>

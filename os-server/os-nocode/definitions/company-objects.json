@@ -1,0 +1,568 @@
+{
+  "version": 1,
+  "referenceUrl": "http://8.209.249.177:8090/company",
+  "description": "仅初始化全局数据对象、字段和引用关系；不创建应用、业务页面、权限、流程或业务记录。",
+  "objects": [
+    {
+      "code": "company",
+      "name": "公司",
+      "tableName": "biz_company",
+      "titleField": "official_name",
+      "description": "公司基础档案。参考日创 AI OS 公司管理业务字段，按当前工程全局对象规范初始化。",
+      "fields": [
+        {
+          "code": "official_name",
+          "name": "正式名称",
+          "type": "TEXT",
+          "length": 200,
+          "required": true
+        },
+        {
+          "code": "short_name",
+          "name": "简称",
+          "type": "TEXT"
+        },
+        {
+          "code": "name_kana",
+          "name": "假名",
+          "type": "TEXT"
+        },
+        {
+          "code": "name_en",
+          "name": "英文名",
+          "type": "TEXT"
+        },
+        {
+          "code": "corporate_number",
+          "name": "法人番号",
+          "type": "TEXT",
+          "length": 13,
+          "unique": true,
+          "pattern": "^[0-9]{13}$",
+          "description": "日本法人番号，按文本保存以保留前导零；未取得时留空。"
+        },
+        {
+          "code": "legal_representative",
+          "name": "法人代表",
+          "type": "TEXT"
+        },
+        {
+          "code": "directors",
+          "name": "董事",
+          "type": "TEXTAREA",
+          "classification": "INTERNAL"
+        },
+        {
+          "code": "registered_capital",
+          "name": "注册资本",
+          "type": "MONEY",
+          "minimum": "0",
+          "classification": "SENSITIVE"
+        },
+        {
+          "code": "capital_currency",
+          "name": "注册资本币种",
+          "type": "TEXT",
+          "length": 3,
+          "defaultValue": "JPY",
+          "pattern": "^[A-Z]{3}$"
+        },
+        {
+          "code": "owner_name",
+          "name": "所有者",
+          "type": "TEXT",
+          "classification": "INTERNAL",
+          "description": "参考系统所有者选项未配置，先保留文本信息；不额外创建客户或股东对象。"
+        },
+        {
+          "code": "shareholding_structure",
+          "name": "股东结构",
+          "type": "TEXTAREA",
+          "classification": "SENSITIVE"
+        },
+        {
+          "code": "established_date",
+          "name": "成立日期",
+          "type": "DATE"
+        },
+        {
+          "code": "fiscal_month",
+          "name": "决算月",
+          "type": "INTEGER",
+          "minimum": "1",
+          "maximum": "12",
+          "description": "保存月份整数 1–12，不使用完整日期。"
+        },
+        {
+          "code": "management_type",
+          "name": "管理类型",
+          "type": "SELECT",
+          "options": [
+            {
+              "code": "GROUP",
+              "label": "集团公司",
+              "disabled": false
+            },
+            {
+              "code": "MANAGED",
+              "label": "代管",
+              "disabled": false
+            },
+            {
+              "code": "CUSTOMER_SELF",
+              "label": "客户自管",
+              "disabled": false
+            },
+            {
+              "code": "ESTABLISHING",
+              "label": "成立中",
+              "disabled": false
+            }
+          ]
+        },
+        {
+          "code": "entrust_type",
+          "name": "委托类型",
+          "type": "SELECT",
+          "options": [
+            {
+              "code": "FULL",
+              "label": "全面管理",
+              "disabled": false
+            },
+            {
+              "code": "PARTIAL",
+              "label": "部分委托",
+              "disabled": false
+            }
+          ]
+        },
+        {
+          "code": "management_status",
+          "name": "管理状态",
+          "type": "SELECT",
+          "options": [
+            {
+              "code": "PREPARING",
+              "label": "准备接管",
+              "disabled": false
+            },
+            {
+              "code": "MANAGING",
+              "label": "管理中",
+              "disabled": false
+            },
+            {
+              "code": "PARTIAL_SUSPENDED",
+              "label": "部分暂停",
+              "disabled": false
+            },
+            {
+              "code": "STOPPED",
+              "label": "停止代管",
+              "disabled": false
+            },
+            {
+              "code": "ENDED",
+              "label": "已结束",
+              "disabled": false
+            }
+          ]
+        },
+        {
+          "code": "postal_code",
+          "name": "邮编",
+          "type": "TEXT",
+          "length": 20
+        },
+        {
+          "code": "registered_address",
+          "name": "注册地址",
+          "type": "TEXT",
+          "length": 500
+        },
+        {
+          "code": "contact_phone",
+          "name": "联系电话",
+          "type": "TEXT",
+          "length": 50,
+          "classification": "INTERNAL"
+        },
+        {
+          "code": "contact_email",
+          "name": "联系邮箱",
+          "type": "TEXT",
+          "length": 254,
+          "classification": "INTERNAL"
+        },
+        {
+          "code": "manager",
+          "name": "负责人",
+          "type": "USER",
+          "classification": "INTERNAL"
+        },
+        {
+          "code": "notes",
+          "name": "备注",
+          "type": "TEXTAREA",
+          "classification": "INTERNAL"
+        }
+      ],
+      "relations": []
+    },
+    {
+      "code": "company_financial_account",
+      "name": "公司财务账号",
+      "tableName": "biz_company_financial_account",
+      "titleField": "account_name",
+      "description": "公司银行财务账号。参考日创 AI OS 公司银行账户；所属公司由稳定引用保存，账号按文本保存。",
+      "fields": [
+        {
+          "code": "account_name",
+          "name": "账户名称",
+          "type": "TEXT",
+          "required": true,
+          "description": "作为记录标题，用于账号选择器和关联展示。"
+        },
+        {
+          "code": "bank_name",
+          "name": "银行",
+          "type": "TEXT",
+          "required": true
+        },
+        {
+          "code": "branch_name",
+          "name": "支店名",
+          "type": "TEXT"
+        },
+        {
+          "code": "account_type",
+          "name": "账户类型",
+          "type": "TEXT",
+          "length": 50,
+          "description": "如普通、当座等；参考表误标为会计要素，按银行账号语义命名。"
+        },
+        {
+          "code": "account_number",
+          "name": "口座番号",
+          "type": "TEXT",
+          "length": 64,
+          "required": true,
+          "classification": "SENSITIVE",
+          "description": "按文本存储，保留前导零。"
+        },
+        {
+          "code": "account_holder",
+          "name": "账户名义人",
+          "type": "TEXT",
+          "classification": "SENSITIVE",
+          "description": "银行登记的账户名义；参考表误标为科目名称。"
+        },
+        {
+          "code": "currency",
+          "name": "币种",
+          "type": "TEXT",
+          "length": 3,
+          "defaultValue": "JPY",
+          "pattern": "^[A-Z]{3}$"
+        },
+        {
+          "code": "purpose",
+          "name": "账户用途",
+          "type": "TEXTAREA",
+          "classification": "INTERNAL",
+          "description": "参考表误标为用车事由，按账户用途初始化。"
+        },
+        {
+          "code": "is_primary",
+          "name": "是否主要账户",
+          "type": "BOOLEAN",
+          "defaultValue": "false"
+        },
+        {
+          "code": "account_status",
+          "name": "账户状态",
+          "type": "SELECT",
+          "options": [
+            {
+              "code": "ACTIVE",
+              "label": "启用",
+              "disabled": false
+            },
+            {
+              "code": "INACTIVE",
+              "label": "停用",
+              "disabled": false
+            },
+            {
+              "code": "CLOSED",
+              "label": "已销户",
+              "disabled": false
+            }
+          ]
+        },
+        {
+          "code": "manager",
+          "name": "账户负责人",
+          "type": "USER",
+          "classification": "INTERNAL"
+        },
+        {
+          "code": "sync_method",
+          "name": "同步方式",
+          "type": "TEXT",
+          "length": 50,
+          "description": "仅保存来源方式信息，后续由业务配置决定同步行为。"
+        },
+        {
+          "code": "last_synced_at",
+          "name": "最后同步时间",
+          "type": "DATETIME"
+        },
+        {
+          "code": "notes",
+          "name": "备注",
+          "type": "TEXTAREA",
+          "classification": "INTERNAL"
+        }
+      ],
+      "relations": [
+        {
+          "code": "company",
+          "name": "所属公司",
+          "kind": "REFERENCE",
+          "targetCode": "company",
+          "required": true,
+          "onDelete": "RESTRICT"
+        }
+      ]
+    },
+    {
+      "code": "company_transaction",
+      "name": "公司流水",
+      "tableName": "biz_company_transaction",
+      "titleField": "summary",
+      "description": "公司账号资金流水。参考日创 AI OS 公司银行流水；归属公司沿所属账号→所属公司关系读取，避免重复保存公司归属。",
+      "fields": [
+        {
+          "code": "summary",
+          "name": "交易摘要",
+          "type": "TEXT",
+          "length": 1000,
+          "required": true,
+          "classification": "INTERNAL",
+          "description": "作为流水记录标题。"
+        },
+        {
+          "code": "transaction_date",
+          "name": "交易日期",
+          "type": "DATE",
+          "required": true
+        },
+        {
+          "code": "posting_date",
+          "name": "记账日",
+          "type": "DATE"
+        },
+        {
+          "code": "direction",
+          "name": "收支方向",
+          "type": "SELECT",
+          "required": true,
+          "options": [
+            {
+              "code": "INCOME",
+              "label": "收入",
+              "disabled": false
+            },
+            {
+              "code": "EXPENSE",
+              "label": "支出",
+              "disabled": false
+            }
+          ]
+        },
+        {
+          "code": "amount",
+          "name": "交易金额",
+          "type": "MONEY",
+          "required": true,
+          "minimum": "0.01",
+          "classification": "SENSITIVE",
+          "description": "恒为正数，收支方向由收支方向字段表达。"
+        },
+        {
+          "code": "currency",
+          "name": "币种",
+          "type": "TEXT",
+          "length": 3,
+          "defaultValue": "JPY",
+          "required": true,
+          "pattern": "^[A-Z]{3}$"
+        },
+        {
+          "code": "balance",
+          "name": "交易后余额",
+          "type": "MONEY",
+          "classification": "SENSITIVE",
+          "description": "银行流水余额，可为负值。"
+        },
+        {
+          "code": "counterparty",
+          "name": "交易对方",
+          "type": "TEXT",
+          "classification": "SENSITIVE"
+        },
+        {
+          "code": "counterparty_normalized",
+          "name": "标准化交易对方",
+          "type": "TEXT",
+          "classification": "SENSITIVE"
+        },
+        {
+          "code": "source_type",
+          "name": "来源类型",
+          "type": "SELECT",
+          "options": [
+            {
+              "code": "BANK_API",
+              "label": "银行接口",
+              "disabled": false
+            },
+            {
+              "code": "CSV_IMPORT",
+              "label": "CSV导入",
+              "disabled": false
+            },
+            {
+              "code": "PDF_OCR",
+              "label": "PDF识别",
+              "disabled": false
+            },
+            {
+              "code": "MANUAL",
+              "label": "手工录入",
+              "disabled": false
+            }
+          ]
+        },
+        {
+          "code": "source_batch_no",
+          "name": "来源批次号",
+          "type": "TEXT",
+          "length": 100,
+          "classification": "INTERNAL",
+          "description": "仅保存外部来源批次标识，不创建导入任务对象。"
+        },
+        {
+          "code": "source_file_name",
+          "name": "来源文件名",
+          "type": "TEXT",
+          "length": 500,
+          "classification": "INTERNAL"
+        },
+        {
+          "code": "source_row_no",
+          "name": "来源行号",
+          "type": "INTEGER",
+          "minimum": "1"
+        },
+        {
+          "code": "source_hash",
+          "name": "来源哈希",
+          "type": "TEXT",
+          "length": 128,
+          "classification": "INTERNAL",
+          "description": "保留来源去重依据，不在未确认去重范围前施加全局唯一限制。"
+        },
+        {
+          "code": "recognition_status",
+          "name": "识别状态",
+          "type": "SELECT",
+          "options": [
+            {
+              "code": "UNPROCESSED",
+              "label": "未处理",
+              "disabled": false
+            },
+            {
+              "code": "AI_SUGGESTED",
+              "label": "AI已建议",
+              "disabled": false
+            },
+            {
+              "code": "PENDING_CONFIRM",
+              "label": "待确认",
+              "disabled": false
+            },
+            {
+              "code": "CONFIRMED",
+              "label": "已确认",
+              "disabled": false
+            },
+            {
+              "code": "ABNORMAL",
+              "label": "异常",
+              "disabled": false
+            },
+            {
+              "code": "EXCLUDED",
+              "label": "已排除",
+              "disabled": false
+            }
+          ]
+        },
+        {
+          "code": "direction_type",
+          "name": "交易方向类别",
+          "type": "TEXT",
+          "length": 100,
+          "description": "保留参考系统 directionType 信息；具体分类后续配置。"
+        },
+        {
+          "code": "account_suggestion",
+          "name": "建议会计科目",
+          "type": "TEXT",
+          "classification": "INTERNAL",
+          "description": "保留参考系统 accountSuggestion 信息，不创建会计科目对象或自动处理。"
+        },
+        {
+          "code": "reconciliation_status",
+          "name": "对账状态",
+          "type": "TEXT",
+          "length": 50,
+          "description": "沿用参考系统文本字段，状态规则由后续业务配置确定。"
+        },
+        {
+          "code": "is_locked",
+          "name": "是否锁定",
+          "type": "BOOLEAN",
+          "defaultValue": "false",
+          "description": "仅存储业务标记；锁定写入规则需由应用动作和权限显式配置。"
+        },
+        {
+          "code": "attachments",
+          "name": "流水附件",
+          "type": "ATTACHMENT",
+          "classification": "SENSITIVE"
+        },
+        {
+          "code": "notes",
+          "name": "备注",
+          "type": "TEXTAREA",
+          "classification": "INTERNAL"
+        }
+      ],
+      "relations": [
+        {
+          "code": "account",
+          "name": "所属账号",
+          "kind": "REFERENCE",
+          "targetCode": "company_financial_account",
+          "required": true,
+          "onDelete": "RESTRICT"
+        }
+      ]
+    }
+  ]
+}

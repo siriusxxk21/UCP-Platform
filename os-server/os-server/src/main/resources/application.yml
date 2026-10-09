@@ -1,0 +1,156 @@
+# ==========================================
+# 公共配置(所有环境共享)
+# ==========================================
+
+# 默认激活的环境配置
+spring:
+  profiles:
+    active: os
+
+---
+# ==========================================
+# 以下为主要配置内容
+# ==========================================
+server:
+  port: 8080
+
+app:
+  database:
+    init-enabled: false  # 设置为 false 禁用启动时的 SQL 执行
+  user-pinyin:
+    backfill-enabled: false  # 仅迁移历史用户时临时开启，完成后关闭
+  workflow: #项目工作项流转配置
+    validate-required-fields: false  # 流转时是否校验必填字段（当前关闭，后续恢复时改为 true）
+
+# 平台客户端仅保留公共行为配置；服务连接与凭据引用统一维护在系统服务连接中。
+os:
+  artifact:
+    nexus:
+      enabled: ${os_ARTIFACT_NEXUS_ENABLED:true}
+      connect-timeout: ${os_ARTIFACT_NEXUS_CONNECT_TIMEOUT:10s}
+      read-timeout: ${os_ARTIFACT_NEXUS_READ_TIMEOUT:60s}
+    harbor:
+      enabled: ${os_ARTIFACT_HARBOR_ENABLED:true}
+      connect-timeout: ${os_ARTIFACT_HARBOR_CONNECT_TIMEOUT:10s}
+      read-timeout: ${os_ARTIFACT_HARBOR_READ_TIMEOUT:60s}
+    minio:
+      enabled: ${os_ARTIFACT_MINIO_ENABLED:true}
+      connect-timeout: ${os_ARTIFACT_MINIO_CONNECT_TIMEOUT:10s}
+      read-timeout: ${os_ARTIFACT_MINIO_READ_TIMEOUT:60s}
+      multipart:
+        part-size: ${os_ARTIFACT_MINIO_PART_SIZE:64MB}
+        threshold: ${os_ARTIFACT_MINIO_THRESHOLD:128MB}
+
+# PowerJob 默认关闭，部署 PowerJob Server 并创建同名应用后通过环境变量启用。
+powerjob:
+  worker:
+    enabled: ${POWERJOB_ENABLED:false}
+    app-name: ${POWERJOB_APP_NAME:os}
+    server-address: ${POWERJOB_SERVER_ADDRESS:10.8.0.7:7700}
+    port: ${POWERJOB_WORKER_PORT:27777}
+    store-strategy: memory
+  client:
+    enabled: ${POWERJOB_ENABLED:false}
+    app-name: ${POWERJOB_APP_NAME:os}
+    password: ${POWERJOB_PASSWORD:}
+    server-address: ${POWERJOB_SERVER_ADDRESS:10.8.0.7:7700}
+    connection-timeout: ${POWERJOB_CONNECTION_TIMEOUT_SECONDS:5}
+    read-timeout: ${POWERJOB_READ_TIMEOUT_SECONDS:10}
+    write-timeout: ${POWERJOB_WRITE_TIMEOUT_SECONDS:10}
+
+
+spring:
+  application:
+    name: os
+  jackson:
+    # 全局 Jackson 默认时区配置 —— 确保所有 Date/LocalDateTime 序列化反序列化使用固定时区
+    # 与实体层 @JsonFormat 注解的 timezone 保持双重一致，防止线上 UTC 服务器出现日期偏差
+    time-zone: Asia/Shanghai
+  main:
+    allow-circular-references: true # 允许循环依赖，因为项目是三层架构，无法避免这个情况。
+
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 2GB
+      max-request-size: 2GB
+      file-size-threshold: 20MB
+
+  freemarker:
+    template-loader-path: classpath:/templates/
+    suffix: .ftl
+    charset: UTF-8
+    content-type: text/html
+    expose-request-attributes: false
+    expose-session-attributes: false
+    expose-spring-macro-helpers: false
+    settings:
+      number_format: 0.##########
+      datetime_format: yyyy-MM-dd HH:mm:ss
+      date_format: yyyy-MM-dd
+      time_format: HH:mm:ss
+
+# MyBatis Plus
+mybatis-plus:
+  mapper-locations: classpath*:/mapper/**/*.xml,classpath*:/com/**/mapper/*.xml,classpath*:/com/richuang/os/codes/**/mapper/*.xml
+  type-aliases-package: com.richuang.os.entity,com.richuang.os.codes.**.entity
+  configuration:
+    map-underscore-to-camel-case: true
+    cache-enabled: true
+    lazy-loading-enabled: true
+    multiple-result-sets-enabled: true
+    use-column-label: true
+    use-generated-keys: true
+    default-executor-type: simple
+    default-statement-timeout: 25000
+    # 开启 SQL 日志打印(只打印 SQL 语句,不打印结果)
+    log-impl: org.apache.ibatis.logging.slf4j.Slf4jImpl
+  global-config:
+    db-config:
+      id-type: assign_id
+      # 禁用逻辑删除 - 所有 delete 操作执行物理删除（真正的 DELETE 语句）
+      # 如需启用逻辑删除，取消以下注释即可
+      # logic-delete-field: deleted
+      # logic-delete-value: 1
+      # logic-not-delete-value: 0
+
+# JWT
+jwt:
+  secret: ${JWT_SECRET:}
+  expiration: 7200000        # Token 有效期:2 小时(毫秒)
+  refresh-threshold: 1800000  # 续期阈值:剩余 30 分钟时自动续期(毫秒)
+
+# Jasypt 加密配置
+jasypt:
+  encryptor:
+    password: ${JASYPT_PASSWORD:} # 加密密钥
+    algorithm: PBEWithMD5AndDES
+    iv-generator-classname: org.jasypt.iv.NoIvGenerator
+
+# 文件上传配置
+file:
+  upload:
+    path: ${FILE_UPLOAD_PATH:D:\workspace\Qoder\temp}
+
+--- #################### 接口文档配置 ####################
+
+springdoc:
+  api-docs:
+    enabled: true
+    path: /v3/api-docs
+  swagger-ui:
+    enabled: true
+    path: /swagger-ui
+  default-flat-param-object: true # 参见 https://doc.xiaominfo.com/docs/faq/v4/knife4j-parameterobject-flat-param 文档
+
+knife4j:
+  enable: true
+  setting:
+    language: zh_cn
+
+message:
+  notice:
+    #凌信通
+    lxt:
+      url: http://192.168.1.227:8080/jeecg-boot/im/openapi/sendLinkNotice
+      appId: 2081935080058073090

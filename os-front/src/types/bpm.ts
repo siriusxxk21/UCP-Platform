@@ -1,0 +1,30 @@
+export type BpmCandidateStrategyEnum = number
+
+export enum BpmNodeTypeEnum {
+  END_EVENT_NODE = 1,
+  START_USER_NODE = 10,
+  USER_TASK_NODE = 11,
+  COPY_TASK_NODE = 12,
+  TRANSACTOR_NODE = 13,
+  DELAY_TIMER_NODE = 14,
+  TRIGGER_NODE = 15,
+  TASK_CENTER_NODE = 16,
+  CHILD_PROCESS_NODE = 20,
+  CONDITION_NODE = 50,
+  CONDITION_BRANCH_NODE = 51,
+  PARALLEL_BRANCH_NODE = 52,
+  INCLUSIVE_BRANCH_NODE = 53,
+  ROUTER_BRANCH_NODE = 54
+}
+
+export enum BpmTaskStatusEnum {
+  SKIP = -2,
+  NOT_START = -1,
+  WAIT = 0,
+  RUNNING = 1,
+  APPROVE = 2,
+  REJECT = 3,
+  CANCEL = 4,
+  RETURN = 5,
+  APPROVING = 7
+}

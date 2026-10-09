@@ -1,0 +1,14 @@
+allowBuilds:
+  '@parcel/watcher': true
+  # Fabric 浏览器端不依赖 node-canvas，禁止执行其原生构建脚本。
+  canvas: false
+  core-js: true
+  core-js-pure: true
+  esbuild: true
+  vue-demi: true
+
+packages:
+  - .
+
+# 使用当前 OS / CPU / libc 的默认安装行为，三平台共用 pnpm-lock.yaml。
+# 不复制 node_modules 跨系统部署，也不预装其他平台的原生依赖。

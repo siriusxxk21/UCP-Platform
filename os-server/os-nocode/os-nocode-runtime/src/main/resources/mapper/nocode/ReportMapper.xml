@@ -1,0 +1,1007 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.richuang.os.nocode.runtime.dal.mapper.ReportMapper">
+    <!-- 分组维度只接收经目录/权限验证的别名、字段和枚举粒度。 -->
+    <sql id="dimension">
+        <choose>
+            <when test="_dimension.bucket.name() == 'VALUE'">
+                ${_dimension.alias}.${@com.richuang.os.nocode.runtime.dal.support.RuntimeSqlParameters@quote(_dimension.column)}::text
+            </when>
+            <otherwise>
+                to_char(
+                <if test="_dimension.withZone">(</if>
+                ${_dimension.alias}.${@com.richuang.os.nocode.runtime.dal.support.RuntimeSqlParameters@quote(_dimension.column)}
+                <if test="_dimension.withZone">AT TIME ZONE #{timeZone})</if>
+                ,
+                <choose>
+                    <when test="_dimension.bucket.name() == 'DAY'">'YYYY-MM-DD'</when>
+                    <when test="_dimension.bucket.name() == 'MONTH'">'YYYY-MM'</when>
+                    <otherwise>'YYYY'</otherwise>
+                </choose>
+                )
+            </otherwise>
+        </choose>
+    </sql>
+
+    <sql id="dateValue">
+        <if test="dateWithZone">(</if>
+        t.${@com.richuang.os.nocode.runtime.dal.support.RuntimeSqlParameters@quote(dateColumn)}
+        <if test="dateWithZone">AT TIME ZONE #{timeZone})</if>
+    </sql>
+
+    <!-- 关联权限在 JOIN 内过滤，再排除有引用却无权读取的记录；不能将其合并到空值组。 -->
+    <sql id="from">
+        FROM
+        <include refid="com.richuang.os.nocode.runtime.dal.mapper.RecordMapper.recordTable">
+            <property name="recordValue" value="base"/>
+        </include>
+        t
+        <!-- 按明细行统计：一条明细行算一行。归属条件与数据视图同一写法（不加类型转换）；没有明细的主记录不出现。 -->
+        <if test="detail != null">
+            JOIN ${@com.richuang.os.nocode.runtime.dal.support.RuntimeSqlParameters@quote(detail.schema)}.${@com.richuang.os.nocode.runtime.dal.support.RuntimeSqlParameters@quote(detail.table)} g
+            ON g.${@com.richuang.os.nocode.runtime.dal.support.RuntimeSqlParameters@quote(detail.parentColumn)} = t.${@com.richuang.os.nocode.runtime.dal.support.RuntimeSqlParameters@quote(base.keyColumn)}
+            <if test="detail.deleted">
+                AND g.${@com.richuang.os.nocode.runtime.dal.support.RuntimeSqlParameters@quote('deleted')}::text IN ('0','false')
+            </if>
+        </if>
+        <foreach collection="joins" item="_join" index="_joinIndex">
+            LEFT JOIN ${@com.richuang.os.nocode.runtime.dal.support.RuntimeSqlParameters@quote(_join.schema)}.${@com.richuang.os.nocode.runtime.dal.support.RuntimeSqlParameters@quote(_join.table)} r${_joinIndex}
+            ON r${_joinIndex}.${@com.richuang.os.nocode.runtime.dal.support.RuntimeSqlParameters@quote(_join.key)}::text = ${_join.sourceAlias}.${@com.richuang.os.nocode.runtime.dal.support.RuntimeSqlParameters@quote(_join.sourceColumn)}::text
+            <if test="_join.deleted">
+                AND r${_joinIndex}.${@com.richuang.os.nocode.runtime.dal.support.RuntimeSqlParameters@quote('deleted')}::text IN ('0','false')
+            </if>
+            <if test="predicates.containsKey('access_r' + _joinIndex)">
+                AND (${predicates['access_r' + _joinIndex].sqlSegment})
+            </if>
+            <if test="_join.creator != null">
+                AND r${_joinIndex}.${@com.richuang.os.nocode.runtime.dal.support.RuntimeSqlParameters@quote('creator')}::text = #{joins[${_joinIndex}].creator}
+            </if>
+        </foreach>
+        <include refid="com.richuang.os.nocode.runtime.dal.mapper.RecordMapper.recordWhere">
+            <property name="recordValue" value="base"/>
+            <property name="prefix" value="base."/>
+            <property name="prefixExpression" value="'base.'"/>
+            <property name="alias" value="t"/>
+        </include>
+        <foreach collection="joins" item="_join" index="_joinIndex">
+            AND (${_join.sourceAlias}.${@com.richuang.os.nocode.runtime.dal.support.RuntimeSqlParameters@quote(_join.sourceColumn)} IS NULL
+            OR r${_joinIndex}.${@com.richuang.os.nocode.runtime.dal.support.RuntimeSqlParameters@quote(_join.key)} IS NOT NULL)
+        </foreach>
+        <foreach collection="filters" item="_filter" index="_filterIndex">
+            AND ${_filter.alias}.${@com.richuang.os.nocode.runtime.dal.support.RuntimeSqlParameters@quote(_filter.column)} IS NOT DISTINCT FROM (
+            jsonb_populate_record(NULL::${@com.richuang.os.nocode.runtime.dal.support.RuntimeSqlParameters@quote(_filter.schema)}.${@com.richuang.os.nocode.runtime.dal.support.RuntimeSqlParameters@quote(_filter.table)}, CAST(#{filters[${_filterIndex}].payload} AS jsonb))
+            ).${@com.richuang.os.nocode.runtime.dal.support.RuntimeSqlParameters@quote(_filter.column)}
+        </foreach>
+        <if test="dateFrom != null">
+            AND
+            <include refid="dateValue"/>
+            &gt;= CAST(#{dateFrom} AS date)
+        </if>
+        <if test="dateToExclusive != null">
+            AND
+            <include refid="dateValue"/>
+            &lt; CAST(#{dateToExclusive} AS date)
+        </if>
+        <!-- 公共筛选、联动与日期钻取复用同一权限 FROM；空值使用原键匹配。 -->
+        <foreach collection="pathDimensions" item="_dimension" index="_pathIndex">
+            AND <include refid="dimension"/>
+            IS NOT DISTINCT FROM CAST(#{path[${_pathIndex}]} AS text)
+        </foreach>
+        <foreach collection="textFilters" item="_textFilter" index="_textIndex">
+            AND strpos(lower(${_textFilter.field.alias}.${@com.richuang.os.nocode.runtime.dal.support.RuntimeSqlParameters@quote(_textFilter.field.column)}::text),
+                lower(#{textFilters[${_textIndex}].value})) &gt; 0
+        </foreach>
+        <!-- detailView：明细粒度下钻明细视图里粒度明细段的固定条件（只作用在 g 上），与主表固定范围一样同时限定统计与下钻。 -->
+        <foreach collection="{'fixed', 'user', 'detailView'}" item="_predicateKey">
+            <if test="predicates.containsKey(_predicateKey)">AND (${predicates[_predicateKey].sqlSegment})</if>
+        </foreach>
+    </sql>
+
+    <!--
+        多个数据来源的一个分支（_source = sources[_sourceIndex]）：dateValue 的逐句改写，见下面 sourceFrom 的说明。
+    -->
+    <sql id="sourceDateValue">
+        <if test="_source.statement.dateWithZone">(</if>
+        t.${@com.richuang.os.nocode.runtime.dal.support.RuntimeSqlParameters@quote(_source.statement.dateColumn)}
+        <if test="_source.statement.dateWithZone">AT TIME ZONE #{sources[${_sourceIndex}].statement.timeZone})</if>
+    </sql>
+
+    <!--
+        多个数据来源的一个分支的取数：from 的逐句改写，只把顶层名字换成本分支的路径 —— 条件判断与取值用 _source.statement.…（OGNL），
+        绑定参数用 sources[${_sourceIndex}].statement.…（#{}），记录条件与权限条件里的 #{…} 也加上同一前缀（先例 DataViewMapper.sectionFrom）。
+        两段的逐行对应由 ReportMultiSourceSqlTest 钉住：改 from 时必须同时改这里。
+    -->
+    <sql id="sourceFrom">
+        FROM
+        <include refid="com.richuang.os.nocode.runtime.dal.mapper.RecordMapper.recordTable">
+            <property name="recordValue" value="_source.statement.base"/>
+        </include>
+        t
+        <!-- 按明细行统计：一条明细行算一行。归属条件与数据视图同一写法（不加类型转换）；没有明细的主记录不出现。 -->
+        <if test="_source.statement.detail != null">
+            JOIN ${@com.richuang.os.nocode.runtime.dal.support.RuntimeSqlParameters@quote(_source.statement.detail.schema)}.${@com.richuang.os.nocode.runtime.dal.support.RuntimeSqlParameters@quote(_source.statement.detail.table)} g
+            ON g.${@com.richuang.os.nocode.runtime.dal.support.RuntimeSqlParameters@quote(_source.statement.detail.parentColumn)} = t.${@com.richuang.os.nocode.runtime.dal.support.RuntimeSqlParameters@quote(_source.statement.base.keyColumn)}
+            <if test="_source.statement.detail.deleted">
+                AND g.${@com.richuang.os.nocode.runtime.dal.support.RuntimeSqlParameters@quote('deleted')}::text IN ('0','false')
+            </if>
+        </if>
+        <foreach collection="_source.statement.joins" item="_join" index="_joinIndex">
+            LEFT JOIN ${@com.richuang.os.nocode.runtime.dal.support.RuntimeSqlParameters@quote(_join.schema)}.${@com.richuang.os.nocode.runtime.dal.support.RuntimeSqlParameters@quote(_join.table)} r${_joinIndex}
+            ON r${_joinIndex}.${@com.richuang.os.nocode.runtime.dal.support.RuntimeSqlParameters@quote(_join.key)}::text = ${_join.sourceAlias}.${@com.richuang.os.nocode.runtime.dal.support.RuntimeSqlParameters@quote(_join.sourceColumn)}::text
+            <if test="_join.deleted">
+                AND r${_joinIndex}.${@com.richuang.os.nocode.runtime.dal.support.RuntimeSqlParameters@quote('deleted')}::text IN ('0','false')
+            </if>
+            <if test="_source.statement.predicates.containsKey('access_r' + _joinIndex)">
+                AND (${_source.statement.predicates['access_r' + _joinIndex].sqlSegment.replace('#{', '#{sources[' + _sourceIndex + '].statement.')})
+            </if>
+            <if test="_join.creator != null">
+                AND r${_joinIndex}.${@com.richuang.os.nocode.runtime.dal.support.RuntimeSqlParameters@quote('creator')}::text = #{sources[${_sourceIndex}].statement.joins[${_joinIndex}].creator}
+            </if>
+        </foreach>
+        <include refid="com.richuang.os.nocode.runtime.dal.mapper.RecordMapper.recordWhere">
+            <property name="recordValue" value="_source.statement.base"/>
+            <property name="prefix" value="sources[${_sourceIndex}].statement.base."/>
+            <property name="prefixExpression" value="'sources[' + _sourceIndex + '].statement.base.'"/>
+            <property name="alias" value="t"/>
+        </include>
+        <foreach collection="_source.statement.joins" item="_join" index="_joinIndex">
+            AND (${_join.sourceAlias}.${@com.richuang.os.nocode.runtime.dal.support.RuntimeSqlParameters@quote(_join.sourceColumn)} IS NULL
+            OR r${_joinIndex}.${@com.richuang.os.nocode.runtime.dal.support.RuntimeSqlParameters@quote(_join.key)} IS NOT NULL)
+        </foreach>
+        <foreach collection="_source.statement.filters" item="_filter" index="_filterIndex">
+            AND ${_filter.alias}.${@com.richuang.os.nocode.runtime.dal.support.RuntimeSqlParameters@quote(_filter.column)} IS NOT DISTINCT FROM (
+            jsonb_populate_record(NULL::${@com.richuang.os.nocode.runtime.dal.support.RuntimeSqlParameters@quote(_filter.schema)}.${@com.richuang.os.nocode.runtime.dal.support.RuntimeSqlParameters@quote(_filter.table)}, CAST(#{sources[${_sourceIndex}].statement.filters[${_filterIndex}].payload} AS jsonb))
+            ).${@com.richuang.os.nocode.runtime.dal.support.RuntimeSqlParameters@quote(_filter.column)}
+        </foreach>
+        <if test="_source.statement.dateFrom != null">
+            AND
+            <include refid="sourceDateValue"/>
+            &gt;= CAST(#{sources[${_sourceIndex}].statement.dateFrom} AS date)
+        </if>
+        <if test="_source.statement.dateToExclusive != null">
+            AND
+            <include refid="sourceDateValue"/>
+            &lt; CAST(#{sources[${_sourceIndex}].statement.dateToExclusive} AS date)
+        </if>
+        <!-- 公共筛选、联动与日期钻取（dev 报表中心看板）：与 from 同一规则逐行镜像（T18）。多来源统计的各来源语句不带钻取路径与文本筛选（恒为空），这里只为保持逐行对应。 -->
+        <foreach collection="_source.statement.pathDimensions" item="_dimension" index="_pathIndex">
+            AND <include refid="dimension"/>
+            IS NOT DISTINCT FROM CAST(#{sources[${_sourceIndex}].statement.path[${_pathIndex}]} AS text)
+        </foreach>
+        <foreach collection="_source.statement.textFilters" item="_textFilter" index="_textIndex">
+            AND strpos(lower(${_textFilter.field.alias}.${@com.richuang.os.nocode.runtime.dal.support.RuntimeSqlParameters@quote(_textFilter.field.column)}::text),
+                lower(#{sources[${_sourceIndex}].statement.textFilters[${_textIndex}].value})) &gt; 0
+        </foreach>
+        <!-- detailView：本来源下钻明细视图里粒度明细段的固定条件（只作用在 g 上），与 from 同一规则（R6 衔接：明细粒度来源也可挂下钻视图）。 -->
+        <foreach collection="{'fixed', 'user', 'detailView'}" item="_predicateKey">
+            <if test="_source.statement.predicates.containsKey(_predicateKey)">AND (${_source.statement.predicates[_predicateKey].sqlSegment.replace('#{', '#{sources[' + _sourceIndex + '].statement.')})</if>
+        </foreach>
+    </sql>
+
+    <!--
+        多个数据来源的逐行表（替代单来源 scoped 的主体）：每个来源一个分支，UNION ALL。列与单来源相同：v{k} 指标列（本来源的指标取本分支的列，
+        其它来源的指标放同类型的空，三个以上分支时不带类型的空会被定成 text 而与数值列冲突），d{i} / c{i} 本来源对齐到第 i 个行 / 列维度的字段，
+        p{k} 每个非公式指标恒有：本来源的指标 = 它的指标条件（没有条件为 TRUE），其它来源 = FALSE；src 为来源下标。
+    -->
+    <sql id="multiScoped">
+        <foreach collection="sources" item="_source" index="_sourceIndex" separator="UNION ALL">
+            SELECT ${_sourceIndex} AS src, 1 AS row_marker
+            <foreach collection="_source.slots" item="_slot" index="_metricIndex">
+                <if test="_slot != null">
+                    <choose>
+                        <when test="_slot.local != null and _slot.column != null">
+                            , ${_slot.alias}.${@com.richuang.os.nocode.runtime.dal.support.RuntimeSqlParameters@quote(_slot.column)} AS v${_metricIndex}
+                        </when>
+                        <when test="_slot.local == null and _slot.nullType != null">
+                            , CAST(NULL AS ${_slot.nullType}) AS v${_metricIndex}
+                        </when>
+                    </choose>
+                </if>
+            </foreach>
+            <foreach collection="_source.statement.dimensions" item="_dimension" index="_dimensionIndex">
+                ,
+                <include refid="dimension"/>
+                AS d${_dimensionIndex}
+            </foreach>
+            <foreach collection="_source.statement.columnDimensions" item="_dimension" index="_dimensionIndex">
+                ,
+                <include refid="dimension"/>
+                AS c${_dimensionIndex}
+            </foreach>
+            <foreach collection="_source.slots" item="_slot" index="_metricIndex">
+                <if test="_slot != null">
+                    <choose>
+                        <when test="_slot.local == null">, FALSE AS p${_metricIndex}</when>
+                        <when test='_source.statement.predicates.containsKey("m" + _slot.local)'>
+                            , (${_source.statement.predicates["m" + _slot.local].sqlSegment.replace('#{', '#{sources[' + _sourceIndex + '].statement.')}) AS p${_metricIndex}
+                        </when>
+                        <otherwise>, TRUE AS p${_metricIndex}</otherwise>
+                    </choose>
+                </if>
+            </foreach>
+            <include refid="sourceFrom"/>
+        </foreach>
+    </sql>
+
+    <!--
+        group 为行键前缀：非透视报表由服务保证与维度数相等（结果与原先逐维限定一致）；
+        透视表可短于行维度数，即小计格下钻。columnGroup 同理，只作用于透视表的列维度。
+    -->
+    <sql id="drill">
+        <if test="group != null">
+            <foreach collection="dimensions" item="_dimension" index="_dimensionIndex">
+                <if test="_dimensionIndex &lt; group.size()">
+                    AND
+                    <include refid="dimension"/>
+                    IS NOT DISTINCT FROM CAST(#{group[${_dimensionIndex}]} AS text)
+                </if>
+            </foreach>
+        </if>
+        <if test="columnGroup != null">
+            <foreach collection="columnDimensions" item="_dimension" index="_dimensionIndex">
+                <if test="_dimensionIndex &lt; columnGroup.size()">
+                    AND
+                    <include refid="dimension"/>
+                    IS NOT DISTINCT FROM CAST(#{columnGroup[${_dimensionIndex}]} AS text)
+                </if>
+            </foreach>
+        </if>
+        <if test="drillMetricIndex != null">
+            <if test='predicates.containsKey("m" + drillMetricIndex)'>
+                AND (${predicates["m" + drillMetricIndex].sqlSegment})
+            </if>
+            <if test="metricColumns[drillMetricIndex] != null">
+                AND ${metricAliases[drillMetricIndex]}.${@com.richuang.os.nocode.runtime.dal.support.RuntimeSqlParameters@quote(metricColumns[drillMetricIndex])} IS NOT NULL
+            </if>
+        </if>
+    </sql>
+
+    <!-- Java 仅展开指标引用。XML 按中序访问片段渲染完整表达式，分组与总体各自重算。 -->
+    <sql id="metricExpression">
+        <foreach collection="_tokens" item="_token">
+            <choose>
+                <when test="_token.stage.name() == 'AGGREGATE'">
+                    <if test="_token.operation.zeroWhenEmpty()">COALESCE(</if>
+                    <choose>
+                        <when test="_token.operation.name() == 'COUNT_FIELD' or _token.operation.name() == 'COUNT_DISTINCT'">
+                            COUNT
+                        </when>
+                        <otherwise>${_token.operation.name()}</otherwise>
+                    </choose>
+                    (
+                    <choose>
+                        <when test="_token.operation.name() == 'COUNT'">*</when>
+                        <otherwise>
+                            <if test="_token.operation.name() == 'COUNT_DISTINCT'">DISTINCT</if>
+                            v${_token.index}
+                        </otherwise>
+                    </choose>
+                    )
+                    <if test='predicates.containsKey("m" + _token.index)'>FILTER (WHERE p${_token.index})</if>
+                    <if test="_token.operation.zeroWhenEmpty()">, 0)</if>
+                </when>
+                <when test="_token.stage.name() == 'FORMULA_START'">((</when>
+                <when test="_token.stage.name() == 'FORMULA_OPERATOR'">
+                    )::numeric
+                    <choose>
+                        <when test="_token.formula.name() == 'ADD'">+ (</when>
+                        <when test="_token.formula.name() == 'SUBTRACT'">- (</when>
+                        <when test="_token.formula.name() == 'MULTIPLY'">* (</when>
+                        <otherwise>/ NULLIF((</otherwise>
+                    </choose>
+                </when>
+                <!-- 以下四种只在多个数据来源时出现（ReportMetricExpressions）：该来源在这一组没有行 ⇒ 空；加、减的操作数空当 0。 -->
+                <when test="_token.stage.name() == 'PRESENCE_START'">CASE WHEN count(*) FILTER (WHERE src = ${_token.source}) &gt; 0 THEN</when>
+                <when test="_token.stage.name() == 'PRESENCE_END'">END</when>
+                <when test="_token.stage.name() == 'ZERO_START'">COALESCE((</when>
+                <when test="_token.stage.name() == 'ZERO_END'">), 0)</when>
+                <otherwise>
+                    )::numeric
+                    <if test="_token.formula.name() == 'DIVIDE'">, 0)</if>
+                    )
+                </otherwise>
+            </choose>
+        </foreach>
+    </sql>
+
+    <!--
+        透视表预聚合后的再聚合：leaf 已按「全部行列维度 + 去重计数列」分组，局部值 s/n/b 见 pivot 的 leaf。
+        求和、计数、计数字段 = 局部值相加；平均 = 局部和 ÷ 局部个数（与 AVG 同为 numeric 除法）；极值取局部极值的极值；
+        去重计数仍对原始值去重（去重列在 leaf 的分组键里，指标条件取组内任一条满足）。每层小计与合计仍覆盖该组全部原始记录。
+    -->
+    <sql id="pivotRollupExpression">
+        <foreach collection="_tokens" item="_token">
+            <choose>
+                <when test="_token.stage.name() == 'AGGREGATE'">
+                    <choose>
+                        <when test="_token.operation.name() == 'COUNT_DISTINCT'">
+                            COALESCE(COUNT(DISTINCT v${_token.index})
+                            <if test='predicates.containsKey("m" + _token.index)'>FILTER (WHERE b${_token.index})</if>
+                            , 0)
+                        </when>
+                        <when test="_token.operation.name() == 'AVG'">(SUM(s${_token.index}) / SUM(n${_token.index}))</when>
+                        <when test="_token.operation.name() == 'MIN'">MIN(s${_token.index})</when>
+                        <when test="_token.operation.name() == 'MAX'">MAX(s${_token.index})</when>
+                        <otherwise>COALESCE(SUM(s${_token.index}), 0)</otherwise>
+                    </choose>
+                </when>
+                <when test="_token.stage.name() == 'FORMULA_START'">((</when>
+                <when test="_token.stage.name() == 'FORMULA_OPERATOR'">
+                    )::numeric
+                    <choose>
+                        <when test="_token.formula.name() == 'ADD'">+ (</when>
+                        <when test="_token.formula.name() == 'SUBTRACT'">- (</when>
+                        <when test="_token.formula.name() == 'MULTIPLY'">* (</when>
+                        <otherwise>/ NULLIF((</otherwise>
+                    </choose>
+                </when>
+                <otherwise>
+                    )::numeric
+                    <if test="_token.formula.name() == 'DIVIDE'">, 0)</if>
+                    )
+                </otherwise>
+            </choose>
+        </foreach>
+    </sql>
+
+    <sql id="pivotRollups">
+        <foreach collection="_expressions" item="_tokens" index="_metricIndex" separator=",">
+            <include refid="pivotRollupExpression"/>
+            AS m${_metricIndex}
+        </foreach>
+    </sql>
+
+    <!-- 预聚合的局部值：每个非公式指标一组，指标条件在这里过滤；去重计数只把原值带进分组键。 -->
+    <sql id="pivotPartials">
+        <foreach collection="_partials" item="_partial">
+            <choose>
+                <when test="_partial.operation.name() == 'COUNT_DISTINCT'">
+                    <if test="_partial.filtered">bool_or(p${_partial.index}) AS b${_partial.index},</if>
+                </when>
+                <otherwise>
+                    <choose>
+                        <when test="_partial.operation.name() == 'COUNT'">count(*)</when>
+                        <when test="_partial.operation.name() == 'COUNT_FIELD' or _partial.operation.name() == 'AVG'">count(v${_partial.index})</when>
+                        <otherwise>${_partial.operation.name()}(v${_partial.index})</otherwise>
+                    </choose>
+                    <if test="_partial.filtered">FILTER (WHERE p${_partial.index})</if>
+                    <choose>
+                        <when test="_partial.operation.name() == 'AVG'">
+                            AS n${_partial.index}, SUM(v${_partial.index})
+                            <if test="_partial.filtered">FILTER (WHERE p${_partial.index})</if>
+                            AS s${_partial.index},
+                        </when>
+                        <otherwise>AS s${_partial.index},</otherwise>
+                    </choose>
+                </otherwise>
+            </choose>
+        </foreach>
+    </sql>
+
+    <sql id="aggregates">
+        <foreach collection="_expressions" item="_tokens" index="_metricIndex" separator=",">
+            <include refid="metricExpression"/>
+            AS m${_metricIndex}
+        </foreach>
+    </sql>
+
+    <sql id="dimensionAliases">
+        <foreach collection="dimensions" item="_dimension" index="_dimensionIndex" separator=",">
+            d${_dimensionIndex}
+        </foreach>
+    </sql>
+
+    <sql id="metricValues">
+        jsonb_build_object(
+        <foreach collection="metrics" item="_metric" index="_metricIndex" separator=",">
+                '${_metric.id}', m${_metricIndex}::text
+        </foreach>
+        )
+    </sql>
+
+    <sql id="pivotMetricValues">
+        json_build_object(
+        <foreach collection="metrics" item="_metric" index="_metricIndex" separator=",">
+                '${_metric.id}', m${_metricIndex}::text
+        </foreach>
+        )
+    </sql>
+
+    <sql id="direction">
+        <choose>
+            <when test="descending">DESC</when>
+            <otherwise>ASC</otherwise>
+        </choose>
+        NULLS LAST
+    </sql>
+
+    <!-- 新排序口径（ordering 非空）每一项的方向；空值恒在最后。 -->
+    <sql id="termDirection">
+        <choose>
+            <when test="_term.descending">DESC</when>
+            <otherwise>ASC</otherwise>
+        </choose>
+        NULLS LAST
+    </sql>
+
+    <!-- 汇总表按 ordering.terms 依次排序：指标项取 m{n}，维度项取 d{n}（数值维度按数值大小而非文本）。各维度都在 terms 里，顺序唯一。 -->
+    <sql id="orderTerms">
+        <foreach collection="ordering.terms" item="_term" separator=",">
+            <choose>
+                <when test="_term.metricIndex != null">m${_term.metricIndex}</when>
+                <when test="dimensions[_term.dimensionIndex].numeric and dimensions[_term.dimensionIndex].bucket.name() == 'VALUE'">
+                    CAST(d${_term.dimensionIndex} AS numeric)
+                </when>
+                <otherwise>d${_term.dimensionIndex}</otherwise>
+            </choose>
+            <include refid="termDirection"/>
+        </foreach>
+    </sql>
+
+    <sql id="order">
+        <choose>
+            <when test="ordering != null">
+                <include refid="orderTerms"/>
+            </when>
+            <when test="sortIndex != null">
+                m${sortIndex}
+                <include refid="direction"/>
+            </when>
+            <when test="dimensions.isEmpty()">
+                m0
+                <include refid="direction"/>
+            </when>
+            <otherwise>
+                <foreach collection="dimensions" item="_dimension" index="_dimensionIndex" separator=",">
+                    d${_dimensionIndex}
+                    <include refid="direction"/>
+                </foreach>
+            </otherwise>
+        </choose>
+        <!-- 指标相同时按维度稳定排序；前 N 组可重复且不改变总体统计。 -->
+        <if test="ordering == null and !dimensions.isEmpty() and sortIndex != null">
+            ,
+            <include refid="dimensionAliases"/>
+        </if>
+    </sql>
+
+    <select
+        id="result"
+        parameterType="com.richuang.os.nocode.runtime.dal.query.ReportStatement"
+        resultType="java.lang.String"
+        timeout="20">
+        <bind name="_expressions" value="@com.richuang.os.nocode.runtime.dal.support.ReportMetricExpressions@expand(_parameter)"/>
+        WITH scoped AS (
+        <choose>
+        <when test="sources != null">
+        <include refid="multiScoped"/>
+        </when>
+        <otherwise>
+        SELECT 1 AS row_marker
+        <foreach collection="metricColumns" item="_metricColumn" index="_metricIndex">
+            <if test="_metricColumn != null">
+                , ${metricAliases[_metricIndex]}.${@com.richuang.os.nocode.runtime.dal.support.RuntimeSqlParameters@quote(_metricColumn)} AS v${_metricIndex}
+            </if>
+        </foreach>
+        <foreach collection="dimensions" item="_dimension" index="_dimensionIndex">
+            ,
+            <include refid="dimension"/>
+            AS d${_dimensionIndex}
+        </foreach>
+        <foreach collection="metrics" item="_metric" index="_metricIndex">
+            <if test='predicates.containsKey("m" + _metricIndex)'>
+                , (${predicates["m" + _metricIndex].sqlSegment}) AS p${_metricIndex}
+            </if>
+        </foreach>
+        <include refid="from"/>
+        </otherwise>
+        </choose>
+        ), grouped AS (
+        SELECT
+        <if test="!dimensions.isEmpty()">
+            <include refid="dimensionAliases"/>
+            ,
+        </if>
+        <include refid="aggregates"/>
+        FROM scoped
+        <if test="!dimensions.isEmpty()">
+            GROUP BY
+            <include refid="dimensionAliases"/>
+        </if>
+        ), totals AS (
+        SELECT
+        <include refid="aggregates"/>
+        , count(*) AS record_count FROM scoped
+        )
+        SELECT jsonb_build_object(
+            'groups', COALESCE((SELECT jsonb_agg(x.payload) FROM (
+        SELECT jsonb_build_object('keys', jsonb_build_array(
+        <include refid="dimensionAliases"/>
+        ), 'values',
+        <include refid="metricValues"/>
+        ) AS payload
+        FROM grouped ORDER BY
+        <include refid="order"/>
+        LIMIT #{groupLimit}
+        ) x), '[]'::jsonb),
+            'totalGroups', (SELECT count(*) FROM grouped), 'recordCount', record_count,
+            'totals',
+        <include refid="metricValues"/>
+        <if test="sources != null">
+            , 'sourceCounts', COALESCE((SELECT jsonb_agg(jsonb_build_array(x.src, x.n) ORDER BY x.src) FROM (SELECT src, count(*) AS n FROM scoped GROUP BY src) x), '[]'::jsonb)
+        </if>
+        )::text FROM totals
+    </select>
+
+    <!-- 标题投影与原键来自同一授权事实集，搜索先于分页，原键始终决定选值和分组。 -->
+    <select id="options" parameterType="com.richuang.os.nocode.runtime.dal.query.ReportOptionsStatement" resultType="java.lang.String" timeout="20">
+        WITH candidates AS (
+            SELECT DISTINCT
+            <bind name="_dimension" value="dimensions[0]"/>
+            <include refid="dimension"/> AS value,
+            <choose>
+                <when test="title != null">
+                    <bind name="_dimension" value="title"/>
+                    <include refid="dimension"/>
+                </when>
+                <otherwise>NULL::text</otherwise>
+            </choose> AS label
+            <include refid="from"/>
+        ), matched_values AS (
+            SELECT value, label FROM candidates WHERE TRUE
+            <if test="keys != null">
+                AND value IN
+                <foreach collection="keys" item="key" open="(" separator="," close=")">#{key}</foreach>
+            </if>
+            <if test="search != null and search != ''">
+                AND (strpos(lower(COALESCE(value, '')), lower(#{search})) &gt; 0
+                    OR strpos(lower(COALESCE(label, '')), lower(#{search})) &gt; 0
+                    <if test="!searchKeys.isEmpty()">
+                        OR value IN
+                        <foreach collection="searchKeys" item="key" open="(" separator="," close=")">#{key}</foreach>
+                    </if>)
+            </if>
+        )
+        SELECT jsonb_build_object('total', (SELECT count(*) FROM matched_values), 'items',
+            COALESCE((SELECT jsonb_agg(jsonb_build_object('value', page.value, 'label', page.label))
+                FROM (SELECT value, label FROM matched_values ORDER BY value NULLS LAST LIMIT #{limit} OFFSET #{offset}) page), '[]'::jsonb))::text
+    </select>
+
+    <select id="datasetDetails" parameterType="com.richuang.os.nocode.runtime.dal.query.ReportDetailStatement" resultType="java.lang.String" timeout="20">
+        WITH scoped AS (
+            SELECT t.${@com.richuang.os.nocode.runtime.dal.support.RuntimeSqlParameters@quote(base.keyColumn)}::text AS id,
+            jsonb_build_array(
+                <foreach collection="fields" item="_dimension" separator=","><include refid="dimension"/></foreach>
+            ) AS values
+            <include refid="from"/><include refid="drill"/>
+        )
+        SELECT jsonb_build_object('total', (SELECT count(*) FROM scoped), 'rows',
+            COALESCE((SELECT jsonb_agg(to_jsonb(p)) FROM (SELECT * FROM scoped ORDER BY id LIMIT #{limit} OFFSET #{offset}) p), '[]'::jsonb))::text
+    </select>
+
+    <select
+        id="rows"
+        parameterType="com.richuang.os.nocode.runtime.dal.query.ReportStatement"
+        resultType="java.lang.String"
+        timeout="20">
+        SELECT
+        <include refid="com.richuang.os.nocode.runtime.dal.mapper.RecordMapper.recordProjection">
+            <property name="recordValue" value="base"/>
+            <property name="revisionSource" value="to_jsonb(t)"/>
+        </include>
+        <include refid="from"/>
+        <include refid="drill"/>
+        ORDER BY t.${@com.richuang.os.nocode.runtime.dal.support.RuntimeSqlParameters@quote(base.keyColumn)} LIMIT #{base.limit} OFFSET #{base.offset}
+    </select>
+
+    <select id="count" parameterType="com.richuang.os.nocode.runtime.dal.query.ReportStatement" resultType="_long" timeout="20">
+        SELECT count(*)
+        <include refid="from"/>
+        <include refid="drill"/>
+    </select>
+
+    <!-- 透视排序键：数值字段按原值大小排序，其余（含按日/月/年分桶）按文本，空值最后。 -->
+    <sql id="pivotKey">
+        <choose>
+            <when test="_dimension.numeric and _dimension.bucket.name() == 'VALUE'">CAST(${_keyColumn} AS numeric)</when>
+            <otherwise>${_keyColumn}</otherwise>
+        </choose>
+        ASC NULLS LAST
+    </sql>
+
+    <!--
+        行排序：有排序指标时按「合计列组」上的该指标逐层排序（Excel 行为）：先按第 1 层分组 p0 的该指标、再按第 1 层原值，
+        再按第 2 层分组 p1 的该指标 …… 最后按叶子 l 的该指标与叶子原值；叶子不跨上层分组交错。行维度层数不限。
+        未设排序指标时按各层维度原值升序。
+    -->
+    <sql id="pivotRowOrder">
+        <choose>
+            <when test="ordering != null">
+                <!-- 新排序口径：每层行维度依次出现；指标项取该层行分组在排序列组上的格 s{层}（见 pivotRowParents），维度项取该层原值。 -->
+                <foreach collection="ordering.terms" item="_term" separator=",">
+                    <choose>
+                        <when test="_term.metricIndex != null">s${_term.dimensionIndex}.m${_term.metricIndex}</when>
+                        <when test="dimensions[_term.dimensionIndex].numeric and dimensions[_term.dimensionIndex].bucket.name() == 'VALUE'">
+                            CAST(l.d${_term.dimensionIndex} AS numeric)
+                        </when>
+                        <otherwise>l.d${_term.dimensionIndex}</otherwise>
+                    </choose>
+                    <include refid="termDirection"/>
+                </foreach>
+            </when>
+            <when test="sortIndex != null">
+                <foreach collection="dimensions" item="_dimension" index="_levelIndex" separator=",">
+                    <choose>
+                        <when test="_levelIndex &lt; dimensions.size() - 1">p${_levelIndex}.m${sortIndex}</when>
+                        <otherwise>l.m${sortIndex}</otherwise>
+                    </choose>
+                    <include refid="direction"/>
+                    ,
+                    <bind name="_keyColumn" value="'l.d' + _levelIndex"/>
+                    <include refid="pivotKey"/>
+                </foreach>
+            </when>
+            <otherwise>
+                <foreach collection="dimensions" item="_dimension" index="_dimensionIndex" separator=",">
+                    <bind name="_keyColumn" value="'l.d' + _dimensionIndex"/>
+                    <include refid="pivotKey"/>
+                </foreach>
+            </otherwise>
+        </choose>
+    </sql>
+
+    <!--
+        透视格的层级编码：把「GROUPING 标志 + 键值」逐层摊平成 text[]，行、列各一个。分组集合总是前缀形状，汇总掉的层键值恒为 NULL，
+        所以同一前缀恰好对应同一数组；数组相等把 NULL 元素视为相等，与 IS NOT DISTINCT FROM 同义，且可哈希，保留判定与排序父组都走等值哈希连接。
+        _prefix 为前缀别名（x/p0/...），_keyPrefix 为 d 或 c，_dims 为行或列维度集合。
+    -->
+    <sql id="pivotCellKey">
+        ARRAY[
+        <foreach collection="_dims" item="_unusedItem" index="_keyIndex" separator=",">
+            ${_prefix}.g${_keyPrefix}${_keyIndex}::text, ${_prefix}.${_keyPrefix}${_keyIndex}
+        </foreach>
+        ]::text[]
+    </sql>
+
+    <!-- 已展示叶子 k 的第 n.l 层前缀（n.l = 0 为合计），与 pivotCellKey 同一编码。 -->
+    <sql id="pivotLeafPrefixKey">
+        ARRAY[
+        <foreach collection="_dims" item="_unusedItem" index="_keyIndex" separator=",">
+            CASE WHEN n.l &gt; ${_keyIndex} THEN '0' ELSE '1' END,
+            CASE WHEN n.l &gt; ${_keyIndex} THEN k.${_keyPrefix}${_keyIndex} END
+        </foreach>
+        ]::text[]
+    </sql>
+
+    <!--
+        排序用的上层分组：第 i 层（0 起，不含叶子层）为「行前 i+1 维分组、其余行维度与全部列维度汇总」的格 p{i}，
+        与叶子 l 在前 i+1 维上对齐。分组集合包含全部前缀，所以每个叶子在每一层都恰有一个对应的上层格。
+        p{i} 取自 rowtot（全部列维度已汇总的行前缀格），按层级编码等值连接。
+    -->
+    <sql id="pivotRowParents">
+        <if test="sortIndex != null and ordering == null">
+            <foreach collection="dimensions" item="_unusedLevel" index="_levelIndex">
+                <if test="_levelIndex &lt; dimensions.size() - 1">
+                    JOIN rowtot p${_levelIndex} ON
+                    <bind name="_prefix" value="'p' + _levelIndex"/>
+                    <bind name="_keyPrefix" value="'d'"/>
+                    <bind name="_dims" value="dimensions"/>
+                    <include refid="pivotCellKey"/>
+                    = ARRAY[
+                    <foreach collection="dimensions" item="_unusedItem" index="_dimensionIndex" separator=",">
+                        <choose>
+                            <when test="_dimensionIndex &lt;= _levelIndex">'0', l.d${_dimensionIndex}</when>
+                            <otherwise>'1', NULL</otherwise>
+                        </choose>
+                    </foreach>
+                    ]::text[]
+                </if>
+            </foreach>
+        </if>
+        <!--
+            新排序口径：按指标排序的每一层（含叶子层）各连接一次 sortsrc —— 该层行分组（行前 层+1 维分组、其余行维度汇总）在排序列组上的格。
+            该行分组在这个列组下没有记录时没有格，左连接得到空值，排在最后。
+        -->
+        <if test="ordering != null">
+            <foreach collection="dimensions" item="_unusedLevel" index="_levelIndex">
+                <if test="ordering.metricLevel(_levelIndex)">
+                    LEFT JOIN sortsrc s${_levelIndex} ON
+                    <bind name="_prefix" value="'s' + _levelIndex"/>
+                    <bind name="_keyPrefix" value="'d'"/>
+                    <bind name="_dims" value="dimensions"/>
+                    <include refid="pivotCellKey"/>
+                    = ARRAY[
+                    <foreach collection="dimensions" item="_unusedItem" index="_dimensionIndex" separator=",">
+                        <choose>
+                            <when test="_dimensionIndex &lt;= _levelIndex">'0', l.d${_dimensionIndex}</when>
+                            <otherwise>'1', NULL</otherwise>
+                        </choose>
+                    </foreach>
+                    ]::text[]
+                </if>
+            </foreach>
+        </if>
+    </sql>
+
+    <!--
+        展示的行叶子数。行数上限不超过原上限（图表上限 200）或没有格数预算时就是 groupLimit，语句与原先相同；
+        更大时再受「行数 × 已展示列组数 ≤ cellBudget」约束（不低于原上限），超出的行照常截断，totalRowGroups 如实给出总数。
+    -->
+    <sql id="pivotRowCap">
+        <choose>
+            <when test="cellBudget > 0 and groupLimit > @com.richuang.os.nocode.api.ApplicationReports@MAX_CHART_GROUPS">
+                LEAST(#{groupLimit}, GREATEST(${@com.richuang.os.nocode.api.ApplicationReports@MAX_CHART_GROUPS},
+                #{cellBudget} / GREATEST(1, (SELECT count(*) FROM colleaf c WHERE c.rn &lt;= #{columnLimit}))))
+            </when>
+            <otherwise>#{groupLimit}</otherwise>
+        </choose>
+    </sql>
+
+    <select
+        id="pivot"
+        parameterType="com.richuang.os.nocode.runtime.dal.query.ReportStatement"
+        resultType="java.lang.String"
+        timeout="20">
+        <bind name="_expressions" value="@com.richuang.os.nocode.runtime.dal.support.ReportMetricExpressions@expand(_parameter)"/>
+        <bind name="_sets" value="@com.richuang.os.nocode.runtime.dal.support.ReportPivotSets@groupingSets(_parameter)"/>
+        <bind name="_partials" value="@com.richuang.os.nocode.runtime.dal.support.ReportPivotSets@partials(_parameter)"/>
+        WITH scoped AS (
+        <choose>
+        <when test="sources != null">
+        <include refid="multiScoped"/>
+        </when>
+        <otherwise>
+        SELECT 1 AS row_marker
+        <foreach collection="metricColumns" item="_metricColumn" index="_metricIndex">
+            <if test="_metricColumn != null">
+                , ${metricAliases[_metricIndex]}.${@com.richuang.os.nocode.runtime.dal.support.RuntimeSqlParameters@quote(_metricColumn)} AS v${_metricIndex}
+            </if>
+        </foreach>
+        <foreach collection="dimensions" item="_dimension" index="_dimensionIndex">
+            ,
+            <include refid="dimension"/>
+            AS d${_dimensionIndex}
+        </foreach>
+        <foreach collection="columnDimensions" item="_dimension" index="_dimensionIndex">
+            ,
+            <include refid="dimension"/>
+            AS c${_dimensionIndex}
+        </foreach>
+        <foreach collection="metrics" item="_metric" index="_metricIndex">
+            <if test='predicates.containsKey("m" + _metricIndex)'>
+                , (${predicates["m" + _metricIndex].sqlSegment}) AS p${_metricIndex}
+            </if>
+        </foreach>
+        <include refid="from"/>
+        </otherwise>
+        </choose>
+        <choose>
+            <when test="exactRollup">
+                ), leaf AS (
+                <!-- 先按全部行列维度（+ 去重计数列）预聚合：GROUPING SETS 只需处理叶子级别的组而不是全部原始记录。 -->
+                SELECT
+                <foreach item="_unusedItem" collection="dimensions" index="_dimensionIndex">d${_dimensionIndex},</foreach>
+                <foreach item="_unusedItem" collection="columnDimensions" index="_dimensionIndex">c${_dimensionIndex},</foreach>
+                <foreach collection="_partials" item="_partial">
+                    <if test="_partial.operation.name() == 'COUNT_DISTINCT'">v${_partial.index},</if>
+                </foreach>
+                <include refid="pivotPartials"/>
+                count(*) AS n
+                FROM scoped
+                GROUP BY
+                <foreach item="_unusedItem" collection="dimensions" index="_dimensionIndex" separator=",">d${_dimensionIndex}</foreach>
+                <foreach item="_unusedItem" collection="columnDimensions" index="_dimensionIndex">, c${_dimensionIndex}</foreach>
+                <foreach collection="_partials" item="_partial">
+                    <if test="_partial.operation.name() == 'COUNT_DISTINCT'">, v${_partial.index}</if>
+                </foreach>
+                ), cube AS (
+                SELECT
+                <foreach item="_unusedItem" collection="dimensions" index="_dimensionIndex">
+                    GROUPING(d${_dimensionIndex}) AS gd${_dimensionIndex}, d${_dimensionIndex},
+                </foreach>
+                <foreach item="_unusedItem" collection="columnDimensions" index="_dimensionIndex">
+                    GROUPING(c${_dimensionIndex}) AS gc${_dimensionIndex}, c${_dimensionIndex},
+                </foreach>
+                <include refid="pivotRollups"/>
+                , SUM(n) AS record_count
+                FROM leaf
+            </when>
+            <otherwise>
+                ), cube AS (
+                SELECT
+                <foreach item="_unusedItem" collection="dimensions" index="_dimensionIndex">
+                    GROUPING(d${_dimensionIndex}) AS gd${_dimensionIndex}, d${_dimensionIndex},
+                </foreach>
+                <foreach item="_unusedItem" collection="columnDimensions" index="_dimensionIndex">
+                    GROUPING(c${_dimensionIndex}) AS gc${_dimensionIndex}, c${_dimensionIndex},
+                </foreach>
+                <include refid="aggregates"/>
+                , count(*) AS record_count
+                FROM scoped
+            </otherwise>
+        </choose>
+        GROUP BY GROUPING SETS (
+        <foreach collection="_sets" item="_set" separator=",">
+            (<foreach collection="_set" item="_alias" separator=",">${_alias}</foreach>)
+        </foreach>
+        )
+        ), rowtot AS (
+        <!-- 行前缀 × 列合计：行叶子、排序用的各层父组都在这里，只有行分组数量级。 -->
+        SELECT * FROM cube WHERE TRUE
+        <foreach item="_unusedItem" collection="columnDimensions" index="_dimensionIndex">
+            AND gc${_dimensionIndex} = 1
+        </foreach>
+        <if test="ordering != null and ordering.usesMetric()">
+            ), sortsrc AS (
+            <!-- 排序用的格：行前缀 × 排序列组（列键前缀 ordering.columnKeys；为空即行合计列组，与 rowtot 相同）。 -->
+            SELECT * FROM cube WHERE TRUE
+            <foreach item="_unusedItem" collection="columnDimensions" index="_dimensionIndex">
+                <choose>
+                    <when test="ordering.columnKeys != null and _dimensionIndex &lt; ordering.columnKeys.size()">
+                        AND gc${_dimensionIndex} = 0
+                        AND c${_dimensionIndex} IS NOT DISTINCT FROM CAST(#{ordering.columnKeys[${_dimensionIndex}]} AS text)
+                    </when>
+                    <otherwise>AND gc${_dimensionIndex} = 1</otherwise>
+                </choose>
+            </foreach>
+        </if>
+        ), rowleaf AS (
+        SELECT
+        <foreach item="_unusedItem" collection="dimensions" index="_dimensionIndex">
+            l.d${_dimensionIndex},
+        </foreach>
+        row_number() OVER (ORDER BY
+        <include refid="pivotRowOrder"/>
+        ) AS rn
+        FROM rowtot l
+        <include refid="pivotRowParents"/>
+        WHERE TRUE
+        <foreach item="_unusedItem" collection="dimensions" index="_dimensionIndex">
+            AND l.gd${_dimensionIndex} = 0
+        </foreach>
+        ), colleaf AS (
+        SELECT
+        <foreach item="_unusedItem" collection="columnDimensions" index="_dimensionIndex">
+            x.c${_dimensionIndex},
+        </foreach>
+        row_number() OVER (ORDER BY
+        <choose>
+            <when test="columnDimensions.isEmpty()">1</when>
+            <when test="ordering != null and ordering.columnDescending">
+                <foreach collection="columnDimensions" item="_dimension" index="_dimensionIndex" separator=",">
+                    <choose>
+                        <when test="_dimension.numeric and _dimension.bucket.name() == 'VALUE'">CAST(x.c${_dimensionIndex} AS numeric)</when>
+                        <otherwise>x.c${_dimensionIndex}</otherwise>
+                    </choose>
+                    DESC NULLS LAST
+                </foreach>
+            </when>
+            <otherwise>
+                <foreach collection="columnDimensions" item="_dimension" index="_dimensionIndex" separator=",">
+                    <bind name="_keyColumn" value="'x.c' + _dimensionIndex"/>
+                    <include refid="pivotKey"/>
+                </foreach>
+            </otherwise>
+        </choose>
+        ) AS rn
+        FROM cube x
+        WHERE TRUE
+        <foreach item="_unusedItem" collection="dimensions" index="_dimensionIndex">
+            AND x.gd${_dimensionIndex} = 1
+        </foreach>
+        <foreach item="_unusedItem" collection="columnDimensions" index="_dimensionIndex">
+            AND x.gc${_dimensionIndex} = 0
+        </foreach>
+        ), rowkept AS (
+        <!-- 保留的行前缀：已展示行叶子（前 groupLimit 个）的每一层前缀，含空前缀（合计）。 -->
+        SELECT DISTINCT
+        <bind name="_keyPrefix" value="'d'"/>
+        <bind name="_dims" value="dimensions"/>
+        <include refid="pivotLeafPrefixKey"/>
+        AS key
+        FROM rowleaf k CROSS JOIN generate_series(0, ${dimensions.size()}) n(l)
+        WHERE k.rn &lt;=
+        <include refid="pivotRowCap"/>
+        ), colkept AS (
+        SELECT DISTINCT
+        <bind name="_keyPrefix" value="'c'"/>
+        <bind name="_dims" value="columnDimensions"/>
+        <include refid="pivotLeafPrefixKey"/>
+        AS key
+        FROM colleaf k CROSS JOIN generate_series(0, ${columnDimensions.size()}) n(l)
+        WHERE k.rn &lt;= #{columnLimit}
+        ), kept AS (
+        <!-- 只返回与已展示叶子相关的格（等值哈希连接）；截断只决定显示哪些格，小计与合计本身仍按原始记录聚合。 -->
+        SELECT x.* FROM cube x
+        JOIN rowkept rk ON rk.key =
+        <bind name="_prefix" value="'x'"/>
+        <bind name="_keyPrefix" value="'d'"/>
+        <bind name="_dims" value="dimensions"/>
+        <include refid="pivotCellKey"/>
+        JOIN colkept ck ON ck.key =
+        <bind name="_keyPrefix" value="'c'"/>
+        <bind name="_dims" value="columnDimensions"/>
+        <include refid="pivotCellKey"/>
+        ), grand AS (
+        SELECT * FROM rowtot WHERE TRUE
+        <foreach item="_unusedItem" collection="dimensions" index="_dimensionIndex">
+            AND gd${_dimensionIndex} = 1
+        </foreach>
+        )
+        SELECT json_build_object(
+            'rows', COALESCE((SELECT json_agg(json_build_array(
+        <foreach item="_unusedItem" collection="dimensions" index="_dimensionIndex" separator=",">k.d${_dimensionIndex}</foreach>
+        ) ORDER BY k.rn) FROM rowleaf k WHERE k.rn &lt;=
+        <include refid="pivotRowCap"/>
+        ), '[]'::json),
+            'columns', COALESCE((SELECT json_agg(json_build_array(
+        <foreach item="_unusedItem" collection="columnDimensions" index="_dimensionIndex" separator=",">k.c${_dimensionIndex}</foreach>
+        ) ORDER BY k.rn) FROM colleaf k WHERE k.rn &lt;= #{columnLimit}), '[]'::json),
+            <!-- 每格一个扁平数组：[行 GROUPING 标志…, 列 GROUPING 标志…, 行键…, 列键…, 指标值（按 metrics 顺序，文本）…]，由 ReportPivotCells.parse 按位置读。 -->
+            'cells', COALESCE((SELECT json_agg(json_build_array(
+        <foreach item="_unusedItem" collection="dimensions" index="_dimensionIndex" separator=",">gd${_dimensionIndex}</foreach>
+        <foreach item="_unusedItem" collection="columnDimensions" index="_dimensionIndex">, gc${_dimensionIndex}</foreach>
+        <foreach item="_unusedItem" collection="dimensions" index="_dimensionIndex">, d${_dimensionIndex}</foreach>
+        <foreach item="_unusedItem" collection="columnDimensions" index="_dimensionIndex">, c${_dimensionIndex}</foreach>
+        <foreach collection="metrics" item="_metric" index="_metricIndex">, m${_metricIndex}::text</foreach>
+        )) FROM kept), '[]'::json),
+            'grand', (SELECT
+        <include refid="pivotMetricValues"/>
+        FROM grand),
+            'totalRowGroups', (SELECT count(*) FROM rowleaf),
+            'totalColumnGroups', (SELECT count(*) FROM colleaf),
+            'recordCount', COALESCE((SELECT record_count FROM grand), 0)
+        <if test="sources != null">
+            , 'sourceCounts', COALESCE((SELECT json_agg(json_build_array(x.src, x.n) ORDER BY x.src) FROM (SELECT src, count(*) AS n FROM scoped GROUP BY src) x), '[]'::json)
+        </if>
+        )::text
+    </select>
+
+    <select
+        id="keys"
+        parameterType="com.richuang.os.nocode.runtime.dal.query.ReportStatement"
+        resultType="java.lang.String"
+        timeout="20">
+        SELECT <if test="detail != null">DISTINCT</if> t.${@com.richuang.os.nocode.runtime.dal.support.RuntimeSqlParameters@quote(base.keyColumn)}::text
+        <include refid="from"/>
+        <include refid="drill"/>
+    </select>
+
+    <!-- 明细粒度：与 keys 同一段取数与下钻条件，返回命中的明细行主键（供明细粒度数据视图按明细行取交集）。 -->
+    <select
+        id="detailKeys"
+        parameterType="com.richuang.os.nocode.runtime.dal.query.ReportStatement"
+        resultType="java.lang.String"
+        timeout="20">
+        SELECT g.${@com.richuang.os.nocode.runtime.dal.support.RuntimeSqlParameters@quote(detail.key)}::text
+        <include refid="from"/>
+        <include refid="drill"/>
+    </select>
+
+    <!--
+        明细粒度的下钻行。内层与 count 是同一段 from / drill：参数把统计语句的分量按原名摊开（ReportStatement.withDetailRows），
+        两个片段原样复用；内层带出所属主记录的投影。外层把内层当作 t，用所选明细自己的记录语句 rows 复用同一个 recordProjection。
+        每行返回 [主记录投影文本, 明细行投影文本]，排序 = 主表主键、明细行主键。
+    -->
+    <select id="detailRows" parameterType="map" resultType="java.lang.String" timeout="20">
+        SELECT jsonb_build_array(t.report_root_record,
+        <include refid="com.richuang.os.nocode.runtime.dal.mapper.RecordMapper.recordProjection">
+            <property name="recordValue" value="rows"/>
+            <property name="revisionSource" value="(to_jsonb(t) - 'report_root_record' - 'report_root_key')"/>
+        </include>
+        )::text
+        FROM (
+        SELECT g.*,
+        <include refid="com.richuang.os.nocode.runtime.dal.mapper.RecordMapper.recordProjection">
+            <property name="recordValue" value="base"/>
+            <property name="revisionSource" value="to_jsonb(t)"/>
+        </include>
+        AS report_root_record,
+        t.${@com.richuang.os.nocode.runtime.dal.support.RuntimeSqlParameters@quote(base.keyColumn)} AS report_root_key
+        <include refid="from"/>
+        <include refid="drill"/>
+        ) t
+        ORDER BY t.report_root_key, t.${@com.richuang.os.nocode.runtime.dal.support.RuntimeSqlParameters@quote(rows.keyColumn)}
+        LIMIT #{base.limit} OFFSET #{base.offset}
+    </select>
+</mapper>

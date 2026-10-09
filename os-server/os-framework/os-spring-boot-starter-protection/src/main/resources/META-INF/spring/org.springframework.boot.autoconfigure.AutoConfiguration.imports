@@ -1,0 +1,4 @@
+com.richuang.os.framework.idempotent.config.OsIdempotentConfiguration
+com.richuang.os.framework.lock4j.config.OsLock4jConfiguration
+com.richuang.os.framework.ratelimiter.config.OsRateLimiterConfiguration
+com.richuang.os.framework.signature.config.OsApiSignatureAutoConfiguration

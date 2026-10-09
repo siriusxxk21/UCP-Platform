@@ -1,0 +1,15 @@
+@import '../management-tables.css';
+
+/* 嵌套列表和独立入口均覆盖底座的默认间距，不依赖懒加载样式的先后顺序。 */
+.report-center-list .os-table-page .os-table-page__search-form .ant-form-inline {
+  flex-wrap: nowrap;
+  gap: 0 var(--spacing-lg);
+}
+
+.report-center-list .report-list-text {
+  display: block;
+  max-width: calc(var(--spacing-lg) * 15);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

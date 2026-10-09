@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.richuang.os.module.system.legacy.mapper.SysDepartmentMapper">
+
+    <resultMap id="BaseResultMap" type="com.richuang.os.module.system.legacy.entity.SysDepartment">
+        <id column="id" property="id"/>
+        <result column="tenant_id" property="tenantId"/>
+        <result column="org_id" property="orgId"/>
+        <result column="dept_code" property="deptCode"/>
+        <result column="dept_name" property="deptName"/>
+        <result column="parent_id" property="parentId"/>
+        <result column="parent_ids" property="parentIds"/>
+        <result column="level" property="level"/>
+        <result column="leader_id" property="leaderId"/>
+        <result column="phone" property="phone"/>
+        <result column="email" property="email"/>
+        <result column="sort_order" property="sortOrder"/>
+        <result column="status" property="status"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="deleted" property="deleted"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id
+        , tenant_id, org_id, dept_code, dept_name, parent_id, parent_ids, level,
+        leader_id, phone, email, sort_order, status, create_time, update_time, deleted
+    </sql>
+
+    <select id="selectChildIds" resultType="java.lang.Long">
+        SELECT id
+        FROM sys_department
+        WHERE parent_ids LIKE CONCAT(#{parentIds}, '%')
+          AND deleted = 0
+    </select>
+
+    <select id="selectByUserId" resultMap="BaseResultMap">
+        SELECT d.*
+        FROM sys_department d
+                 INNER JOIN sys_user_dept ud ON d.id = ud.dept_id
+        WHERE ud.user_id = #{userId}
+          AND d.deleted = 0
+        ORDER BY ud.is_main DESC, d.sort_order
+    </select>
+
+</mapper>

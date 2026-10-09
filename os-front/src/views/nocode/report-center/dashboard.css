@@ -1,0 +1,108 @@
+.dashboard-page {
+  height: 100%;
+  overflow: auto;
+  padding: var(--spacing-lg);
+  background: var(--bg-page);
+}
+.dashboard-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-lg);
+  flex-wrap: wrap;
+}
+.dashboard-toolbar h2 {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.dashboard-toolbar > .ant-space {
+  max-width: 100%;
+  flex-wrap: wrap;
+}
+.dashboard-page > p {
+  overflow-wrap: anywhere;
+}
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  grid-auto-rows: calc(var(--spacing-lg) * 4);
+  gap: var(--spacing-lg);
+  min-height: calc(var(--spacing-lg) * 16);
+  padding-bottom: var(--spacing-xl);
+}
+.dashboard-tile {
+  background: var(--color-bg-container);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: var(--spacing-lg);
+  overflow: auto;
+  min-width: 0;
+}
+.dashboard-tile h3 {
+  margin: 0 0 var(--spacing-md);
+  font-size: var(--table-header-font-size);
+}
+.dashboard-tile-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-md);
+}
+.dashboard-editor-meta {
+  margin-bottom: var(--spacing-lg);
+}
+.dashboard-editor-meta .ant-input {
+  max-width: calc(var(--spacing-lg) * 32);
+}
+.dashboard-palette {
+  margin-bottom: var(--spacing-lg);
+}
+.dashboard-empty {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-2xl);
+}
+.dashboard-drag {
+  cursor: grab;
+  color: var(--text-secondary);
+}
+.dashboard-filter-bar {
+  background: var(--color-bg-container);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: var(--spacing-lg);
+  margin-bottom: var(--spacing-lg);
+}
+.dashboard-filter-fields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-lg);
+}
+.dashboard-link-tags,
+.dashboard-drill-path {
+  margin-bottom: var(--spacing-md);
+}
+@media (max-width: 768px) {
+  .dashboard-page,
+  .dashboard-filter-bar,
+  .dashboard-tile {
+    padding: var(--spacing-md);
+  }
+  .dashboard-filter-fields {
+    gap: var(--spacing-md);
+  }
+  .dashboard-grid {
+    display: flex;
+    flex-direction: column;
+  }
+  .dashboard-tile {
+    flex: none;
+  }
+  .dashboard-filter-control {
+    width: 100%;
+  }
+}

@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.richuang.os.nocode.application.dal.mapper.ApplicationMapper">
+    <select id="automationCatalogLock" resultType="java.lang.String" useCache="false" flushCache="true">
+        SELECT <choose><when test="exclusive">pg_advisory_xact_lock</when><otherwise>pg_advisory_xact_lock_shared</otherwise></choose>(hashtextextended('nocode-automation-catalog',0))::text
+    </select>
+    <select id="automationSnapshots" resultType="java.lang.String" useCache="false" flushCache="true">
+        SELECT jsonb_build_object('applicationId',a.id::text,'version',a.published_version,
+            'definition',v.definition_json-&gt;'definition')::text
+        FROM public.nocode_application a JOIN public.nocode_application_version v
+            ON v.application_id=a.id AND v.version_no=a.published_version AND v.deleted=0
+        WHERE a.deleted=0 AND a.status='ACTIVE'
+        AND EXISTS (SELECT 1 FROM jsonb_array_elements(v.definition_json-&gt;'definition'-&gt;'resources') r WHERE r-&gt;&gt;'kind' IN ('AUTOMATION','ACTION','NUMBER_RULE'))
+        ORDER BY a.id
+    </select>
+    <select id="runnableIds" resultType="java.lang.String">
+        SELECT id::text FROM public.nocode_application
+        WHERE deleted=0 AND status='ACTIVE' AND published_version IS NOT NULL
+        ORDER BY app_name,id
+    </select>
+    <select id="page" resultType="com.richuang.os.nocode.application.dal.dataobject.NocodeApplicationDO">
+        SELECT * FROM public.nocode_application WHERE deleted=0 AND (app_name ILIKE #{search} ESCAPE '!' OR app_code ILIKE #{search} ESCAPE '!')
+        <if test="creator != null">AND creator=#{creator}</if>
+        <if test="category != null">AND category=#{category}</if>
+        ORDER BY update_time DESC,id DESC
+    </select>
+    <select id="categories" resultType="string">
+        SELECT DISTINCT category FROM public.nocode_application WHERE deleted=0 AND category &lt;&gt; ''
+        <if test="creator != null">AND creator=#{creator}</if>
+        ORDER BY category
+    </select>
+    <select id="recyclePage" resultType="com.richuang.os.nocode.application.dal.dataobject.NocodeApplicationDO">
+        SELECT * FROM public.nocode_application WHERE deleted=1
+        AND (app_name ILIKE #{search} ESCAPE '!' OR app_code ILIKE #{search} ESCAPE '!')
+        <if test="creator != null">AND creator=#{creator}</if>
+        ORDER BY deleted_at DESC,id DESC
+    </select>
+    <select id="lockDeleted" resultType="com.richuang.os.nocode.application.dal.dataobject.NocodeApplicationDO" useCache="false" flushCache="true">
+        SELECT * FROM public.nocode_application WHERE id=#{id} AND deleted=1 FOR UPDATE
+    </select>
+    <update id="recycle">
+        UPDATE public.nocode_application SET deleted=1,status='DISABLED',deleted_at=clock_timestamp(),
+        deleted_by=#{actor},deleted_reason=#{reason},lock_version=lock_version+1,
+        updater=#{actor},update_time=clock_timestamp() WHERE id=#{id} AND deleted=0
+    </update>
+    <select id="unresolvedHandling" resultType="long" useCache="false" flushCache="true">
+        SELECT count(*) FROM public.nocode_handling_request WHERE application_id=#{id} AND deleted=0
+        AND status IN <foreach collection="states" item="state" open="(" separator="," close=")">#{state}</foreach>
+    </select>
+    <update id="restoreDeleted">
+        UPDATE public.nocode_application SET deleted=0,status='DISABLED',recovery_pending=true,
+        restored_at=clock_timestamp(),restored_by=#{actor},restored_reason=#{reason},
+        recovery_needs_edit=true,lock_version=lock_version+1,updater=#{actor},update_time=clock_timestamp()
+        WHERE id=#{id} AND deleted=1
+    </update>
+    <update id="completeRecovery">
+        UPDATE public.nocode_application SET status='ACTIVE',recovery_pending=false,
+        recovery_needs_edit=false,updater=#{actor},update_time=clock_timestamp()
+        WHERE id=#{id} AND deleted=0 AND recovery_pending=true AND recovery_needs_edit=false
+    </update>
+    <select id="lock" resultType="com.richuang.os.nocode.application.dal.dataobject.NocodeApplicationDO" useCache="false" flushCache="true">
+        SELECT * FROM public.nocode_application WHERE id=#{id} AND deleted=0
+        <choose><when test="write">FOR UPDATE</when><otherwise>FOR SHARE</otherwise></choose>
+    </select>
+    <insert id="create" useGeneratedKeys="true" keyProperty="app.id" keyColumn="id">
+        INSERT INTO public.nocode_application(app_code,app_name,category,description,icon,status,design_json,creator,updater)
+        VALUES(#{app.appCode},#{app.appName},#{app.category},#{app.description},#{app.icon},#{app.status},CAST(#{app.designJson} AS jsonb),#{actor},#{actor})
+    </insert>
+    <update id="updateDraft">
+        UPDATE public.nocode_application SET app_name=#{app.appName},category=#{app.category},description=#{app.description},icon=#{app.icon},
+        design_json=CAST(#{app.designJson} AS jsonb),
+        recovery_needs_edit=CASE WHEN recovery_pending AND recovery_needs_edit THEN
+            NOT (app_name IS DISTINCT FROM #{app.appName} OR category IS DISTINCT FROM #{app.category}
+                OR description IS DISTINCT FROM #{app.description} OR icon IS DISTINCT FROM #{app.icon}
+                OR design_json IS DISTINCT FROM CAST(#{app.designJson} AS jsonb))
+            ELSE false END,
+        lock_version=lock_version+1,updater=#{actor},update_time=clock_timestamp()
+        WHERE id=#{app.id} AND lock_version=#{expected} AND deleted=0
+    </update>
+    <select id="versions" resultType="com.richuang.os.nocode.application.dal.dataobject.NocodeApplicationVersionDO">
+        SELECT * FROM public.nocode_application_version WHERE application_id=#{id} AND deleted=0 ORDER BY version_no DESC
+    </select>
+    <select id="versionPage" resultType="com.richuang.os.nocode.application.dal.dataobject.NocodeApplicationVersionDO">
+        SELECT id,application_id,version_no,checksum,reason,creator,create_time,updater,update_time,deleted
+        FROM public.nocode_application_version WHERE application_id=#{id} AND deleted=0 ORDER BY version_no DESC
+    </select>
+    <select id="version" resultType="com.richuang.os.nocode.application.dal.dataobject.NocodeApplicationVersionDO">
+        SELECT * FROM public.nocode_application_version WHERE application_id=#{id} AND version_no=#{number} AND deleted=0
+    </select>
+    <insert id="createVersion" useGeneratedKeys="true" keyProperty="version.id" keyColumn="id">
+        INSERT INTO public.nocode_application_version(application_id,version_no,definition_json,checksum,reason,creator,updater)
+        VALUES(#{version.applicationId},#{version.versionNo},CAST(#{version.definitionJson} AS jsonb),#{version.checksum},#{version.reason},#{actor},#{actor})
+    </insert>
+    <update id="publish">
+        UPDATE public.nocode_application SET published_version=#{number},lock_version=lock_version+1,updater=#{actor},update_time=clock_timestamp()
+        WHERE id=#{id} AND deleted=0
+    </update>
+    <update id="status">
+        UPDATE public.nocode_application SET status=#{status},lock_version=lock_version+1,updater=#{actor},update_time=clock_timestamp()
+        WHERE id=#{id} AND deleted=0
+    </update>
+</mapper>

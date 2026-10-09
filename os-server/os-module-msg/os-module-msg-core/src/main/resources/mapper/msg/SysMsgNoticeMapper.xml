@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.richuang.os.module.msg.web.mapper.SysMsgNoticeMapper">
+
+    <resultMap id="NoticeVOResultMap" type="com.richuang.os.module.msg.web.controller.SysMsgNoticeController$SysMsgNoticeVO">
+        <id column="id" property="id"/>
+        <result column="msg_id" property="msgId"/>
+        <result column="msg_template_id" property="msgTemplateId"/>
+        <result column="title" property="title"/>
+        <result column="content" property="content"/>
+        <result column="url" property="url"/>
+        <result column="source_type" property="sourceType"/>
+        <result column="source_id" property="sourceId"/>
+        <result column="priority" property="priority"/>
+        <result column="owner_name" property="ownerName"/>
+        <result column="has_read" property="hasRead"/>
+        <result column="notice_time" property="noticeTime"/>
+        <result column="read_time" property="readTime"/>
+        <result column="send_time" property="sendTime"/>
+    </resultMap>
+
+    <!-- 分页查询当前用户的消息通知（联表 sys_msg） -->
+    <select id="selectNoticePage" resultMap="NoticeVOResultMap">
+        SELECT n.id, n.msg_id, m.msg_template_id, m.title, m.content, m.url, m.source_type, m.source_id, m.priority,
+               m.owner_name, n.has_read, n.notice_time, n.read_time, m.send_time
+        FROM sys_msg_notice n
+        INNER JOIN sys_msg m ON n.msg_id = m.id
+        WHERE n.receiver_id = #{receiverId}
+        AND m.deleted = 0
+        <if test="msgTemplateId != null">
+            AND m.msg_template_id = #{msgTemplateId}
+        </if>
+        <if test="hasRead != null">
+            AND n.has_read = #{hasRead}
+        </if>
+        <if test="keyword != null and keyword != ''">
+            AND (m.title LIKE CONCAT('%', #{keyword}, '%')
+                OR m.content LIKE CONCAT('%', #{keyword}, '%'))
+        </if>
+        ORDER BY n.has_read asc, m.send_time desc
+    </select>
+
+    <!-- 根据 ID 查询当前用户的消息通知详情（联表 sys_msg） -->
+    <select id="selectNoticeById" resultMap="NoticeVOResultMap">
+        SELECT n.id, n.msg_id, m.msg_template_id, m.title, m.content, m.url, m.source_type, m.source_id, m.priority,
+               m.owner_name, n.has_read, n.notice_time, n.read_time, m.send_time
+        FROM sys_msg_notice n
+        INNER JOIN sys_msg m ON n.msg_id = m.id
+        WHERE n.msg_id = #{messageId}
+        AND n.receiver_id = #{receiverId}
+        AND m.deleted = 0
+    </select>
+
+    <!-- 统计当前用户消息通知总数（联表 sys_msg） -->
+    <select id="selectNoticeCount" resultType="long">
+        SELECT COUNT(*)
+        FROM sys_msg_notice n
+        INNER JOIN sys_msg m ON n.msg_id = m.id
+        WHERE n.receiver_id = #{receiverId}
+        AND m.deleted = 0
+        <if test="msgTemplateId != null">
+            AND m.msg_template_id = #{msgTemplateId}
+        </if>
+        <if test="hasRead != null">
+            AND n.has_read = #{hasRead}
+        </if>
+        <if test="keyword != null and keyword != ''">
+            AND (m.title LIKE CONCAT('%', #{keyword}, '%')
+                OR m.content LIKE CONCAT('%', #{keyword}, '%'))
+        </if>
+    </select>
+
+</mapper>

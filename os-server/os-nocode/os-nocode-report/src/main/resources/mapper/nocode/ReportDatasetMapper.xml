@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.richuang.os.nocode.report.dal.mapper.ReportDatasetMapper">
+    <select id="designLock" resultType="java.lang.String" useCache="false" flushCache="true">
+        SELECT pg_advisory_xact_lock(hashtextextended('nocode-design-write',0))::text
+    </select>
+    <select id="designReadLock" resultType="java.lang.String" useCache="false" flushCache="true">
+        SELECT pg_advisory_xact_lock_shared(hashtextextended('nocode-design-write',0))::text
+    </select>
+    <select id="lock" resultType="com.richuang.os.nocode.report.dal.dataobject.ReportDatasetDO" useCache="false" flushCache="true">
+        SELECT * FROM public.nocode_report_dataset WHERE id=#{id} AND deleted=0
+        <choose><when test="write">FOR UPDATE</when><otherwise>FOR SHARE</otherwise></choose>
+    </select>
+    <select id="page" resultType="com.richuang.os.nocode.report.dal.dataobject.ReportDatasetDO">
+        SELECT d.* FROM public.nocode_report_dataset d WHERE d.deleted=0
+        AND <include refid="visibleDataset"/>
+        AND d.name ILIKE #{search} ESCAPE '!'
+        <if test="folder != null">
+            <choose>
+                <when test="folder == 0">AND d.folder_id IS NULL</when>
+                <otherwise>AND d.folder_id IN (
+                    WITH RECURSIVE branch AS (
+                        SELECT id FROM public.nocode_report_folder WHERE id=#{folder} AND resource_kind='DATASET' AND deleted=0
+                        UNION SELECT f.id FROM public.nocode_report_folder f JOIN branch b ON f.parent_id=b.id
+                        WHERE f.deleted=0 AND f.resource_kind='DATASET'
+                    ) SELECT id FROM branch
+                )</otherwise>
+            </choose>
+        </if>
+        ORDER BY d.update_time DESC,d.id DESC
+    </select>
+    <sql id="visibleDataset">(d.owner_id=#{actor} OR EXISTS (
+            SELECT 1 FROM public.nocode_report_resource_acl acl,
+                LATERAL jsonb_array_elements(acl.policy_json) member
+            WHERE acl.resource_kind='DATASET' AND acl.resource_id=d.id AND acl.deleted=0
+                AND (member-&gt;'actions') @&gt; '["VIEW_META"]'::jsonb
+                AND (member-&gt;&gt;'principalKind') || ':' || (member-&gt;&gt;'principalId') IN
+                <foreach collection="principals" item="principal" open="(" separator="," close=")">#{principal}</foreach>
+        ))</sql>
+    <select id="authorizationTargets" resultType="com.richuang.os.nocode.report.dal.dataobject.ReportDatasetDO">
+        SELECT id,name,status,draft_json FROM public.nocode_report_dataset
+        WHERE deleted=0 AND name ILIKE #{search} ESCAPE '!' ORDER BY update_time DESC,id DESC
+    </select>
+    <insert id="create" useGeneratedKeys="true" keyProperty="row.id" keyColumn="id">
+        INSERT INTO public.nocode_report_dataset(name,description,owner_id,folder_id,draft_json,draft_checksum,creator,updater)
+        VALUES(#{row.name},#{row.description},#{row.ownerId},#{row.folderId},CAST(#{row.draftJson} AS jsonb),#{row.draftChecksum},#{actor},#{actor})
+    </insert>
+    <update id="save">
+        UPDATE public.nocode_report_dataset SET name=#{row.name},description=#{row.description},draft_json=CAST(#{row.draftJson} AS jsonb),
+            draft_checksum=#{row.draftChecksum},lock_version=lock_version+1,updater=#{actor},update_time=clock_timestamp()
+        WHERE id=#{row.id} AND lock_version=#{expected} AND deleted=0
+    </update>
+    <update id="move">
+        UPDATE public.nocode_report_dataset SET folder_id=#{folder},lock_version=lock_version+1,
+            updater=#{actor},update_time=clock_timestamp() WHERE id=#{id} AND lock_version=#{expected} AND deleted=0
+    </update>
+    <update id="publish">
+        UPDATE public.nocode_report_dataset SET published_version=#{number},status=CASE WHEN published_version IS NULL THEN 'ACTIVE' ELSE status END,
+            lock_version=lock_version+1,updater=#{actor},update_time=clock_timestamp() WHERE id=#{id} AND deleted=0
+    </update>
+    <update id="status">
+        UPDATE public.nocode_report_dataset SET status=#{status},lock_version=lock_version+1,updater=#{actor},update_time=clock_timestamp()
+        WHERE id=#{id} AND deleted=0
+    </update>
+    <insert id="createVersion" useGeneratedKeys="true" keyProperty="row.id" keyColumn="id">
+        INSERT INTO public.nocode_report_dataset_version(dataset_id,version_no,definition_json,checksum,reason,request_id,request_hash,creator,updater)
+        VALUES(#{row.datasetId},#{row.versionNo},CAST(#{row.definitionJson} AS jsonb),#{row.checksum},#{row.reason},#{row.requestId},#{row.requestHash},#{actor},#{actor})
+    </insert>
+    <select id="version" resultType="com.richuang.os.nocode.report.dal.dataobject.ReportDatasetVersionDO">
+        SELECT * FROM public.nocode_report_dataset_version WHERE dataset_id=#{id} AND version_no=#{number} AND deleted=0
+    </select>
+    <select id="request" resultType="com.richuang.os.nocode.report.dal.dataobject.ReportDatasetVersionDO">
+        SELECT * FROM public.nocode_report_dataset_version WHERE dataset_id=#{id} AND creator=#{actor} AND request_id=#{request} AND deleted=0
+    </select>
+    <select id="versions" resultType="com.richuang.os.nocode.report.dal.dataobject.ReportDatasetVersionDO">
+        SELECT * FROM public.nocode_report_dataset_version WHERE dataset_id=#{id} AND deleted=0 ORDER BY version_no DESC
+    </select>
+    <select id="incomingReferences" resultType="long" useCache="false" flushCache="true">
+        SELECT count(*) FROM public.nocode_report_dependency
+        WHERE target_kind='DATASET' AND target_id=#{id} AND deleted=0
+    </select>
+    <select id="versionNumbers" resultType="java.lang.Integer">
+        SELECT version_no FROM public.nocode_report_dataset_version WHERE dataset_id=#{id} AND deleted=0
+    </select>
+    <update id="remove">
+        UPDATE public.nocode_report_dataset SET deleted=1,status='INACTIVE',lock_version=lock_version+1,
+            updater=#{actor},update_time=clock_timestamp()
+        WHERE id=#{id} AND lock_version=#{expected} AND deleted=0
+    </update>
+    <insert id="audit" useGeneratedKeys="true" keyProperty="row.id" keyColumn="id">
+        INSERT INTO public.nocode_report_operation_log(resource_kind,resource_id,action,revision,before_json,after_json,reason,creator,updater)
+        VALUES(#{row.resourceKind},#{row.resourceId},#{row.action},#{row.revision},CAST(#{row.beforeJson} AS jsonb),CAST(#{row.afterJson} AS jsonb),#{row.reason},#{actor},#{actor})
+    </insert>
+</mapper>

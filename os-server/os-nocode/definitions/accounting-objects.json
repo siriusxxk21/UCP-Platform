@@ -1,0 +1,914 @@
+{
+  "version": 1,
+  "batch": "ACCOUNTING_20260911_V1",
+  "source": "用户在本任务提供的会计科目清单",
+  "description": "初始化两个全局数据对象、13 个分类和 90 个科目。保留日文名称与全部原始顺序值；分类编码 AC01–AC13 由初始化生成。",
+  "objects": [
+    {
+      "code": "accounting_category",
+      "name": "会计科目分类",
+      "tableName": "biz_accounting_category",
+      "titleField": "category_name",
+      "fields": [
+        {
+          "code": "category_code",
+          "name": "分类编码",
+          "type": "TEXT",
+          "required": true,
+          "unique": true,
+          "length": 32
+        },
+        {
+          "code": "category_name",
+          "name": "分类名称",
+          "type": "TEXT",
+          "required": true,
+          "unique": false,
+          "length": 200
+        }
+      ],
+      "relations": [],
+      "records": [
+        {
+          "category_code": "AC01",
+          "category_name": "流動資産"
+        },
+        {
+          "category_code": "AC02",
+          "category_name": "固定資産"
+        },
+        {
+          "category_code": "AC03",
+          "category_name": "流動負債"
+        },
+        {
+          "category_code": "AC04",
+          "category_name": "固定負債"
+        },
+        {
+          "category_code": "AC05",
+          "category_name": "純資産"
+        },
+        {
+          "category_code": "AC06",
+          "category_name": "営業収益"
+        },
+        {
+          "category_code": "AC07",
+          "category_name": "営業原価"
+        },
+        {
+          "category_code": "AC08",
+          "category_name": "販売費及び一般管理費"
+        },
+        {
+          "category_code": "AC09",
+          "category_name": "営業外収益"
+        },
+        {
+          "category_code": "AC10",
+          "category_name": "営業外費用"
+        },
+        {
+          "category_code": "AC11",
+          "category_name": "特別利益"
+        },
+        {
+          "category_code": "AC12",
+          "category_name": "特別損失"
+        },
+        {
+          "category_code": "AC13",
+          "category_name": "法人税等"
+        }
+      ]
+    },
+    {
+      "code": "accounting_account",
+      "name": "会计科目",
+      "tableName": "biz_accounting_account",
+      "titleField": "account_name",
+      "fields": [
+        {
+          "code": "account_code",
+          "name": "科目编码",
+          "type": "TEXT",
+          "required": true,
+          "unique": true,
+          "length": 32
+        },
+        {
+          "code": "account_name",
+          "name": "科目名称",
+          "type": "TEXT",
+          "required": true,
+          "unique": false,
+          "length": 200
+        },
+        {
+          "code": "category_id",
+          "name": "会计科目分类",
+          "type": "INTEGER",
+          "required": true,
+          "unique": false,
+          "resolver": "RECORD_TITLE"
+        },
+        {
+          "code": "accounting_element",
+          "name": "会计要素",
+          "type": "SELECT",
+          "required": true,
+          "unique": false,
+          "options": [
+            {
+              "code": "ASSET",
+              "label": "资产",
+              "disabled": false
+            },
+            {
+              "code": "LIABILITY",
+              "label": "负债",
+              "disabled": false
+            },
+            {
+              "code": "EQUITY",
+              "label": "净资产",
+              "disabled": false
+            },
+            {
+              "code": "REVENUE",
+              "label": "收益",
+              "disabled": false
+            },
+            {
+              "code": "EXPENSE",
+              "label": "费用",
+              "disabled": false
+            }
+          ]
+        },
+        {
+          "code": "normal_balance",
+          "name": "正常余额",
+          "type": "SELECT",
+          "required": true,
+          "unique": false,
+          "options": [
+            {
+              "code": "DEBIT",
+              "label": "借方",
+              "disabled": false
+            },
+            {
+              "code": "CREDIT",
+              "label": "贷方",
+              "disabled": false
+            }
+          ]
+        },
+        {
+          "code": "sort_order",
+          "name": "顺序",
+          "type": "INTEGER",
+          "required": true,
+          "unique": false,
+          "minimum": "0",
+          "description": "保留用户提供的顺序值，不自动重新编号。"
+        }
+      ],
+      "relations": [
+        {
+          "code": "category",
+          "name": "会计科目分类",
+          "kind": "REFERENCE",
+          "targetObjectCode": "accounting_category",
+          "fieldId": "category_id",
+          "required": true,
+          "onDelete": "RESTRICT"
+        }
+      ],
+      "records": [
+        {
+          "account_code": "1003",
+          "account_name": "定期預金",
+          "category_code": "AC01",
+          "accounting_element": "ASSET",
+          "normal_balance": "DEBIT",
+          "sort_order": 3
+        },
+        {
+          "account_code": "1100",
+          "account_name": "現金",
+          "category_code": "AC01",
+          "accounting_element": "ASSET",
+          "normal_balance": "DEBIT",
+          "sort_order": 1
+        },
+        {
+          "account_code": "1140",
+          "account_name": "売掛金",
+          "category_code": "AC01",
+          "accounting_element": "ASSET",
+          "normal_balance": "DEBIT",
+          "sort_order": 4
+        },
+        {
+          "account_code": "1150",
+          "account_name": "未収入金",
+          "category_code": "AC01",
+          "accounting_element": "ASSET",
+          "normal_balance": "DEBIT",
+          "sort_order": 5
+        },
+        {
+          "account_code": "1200",
+          "account_name": "普通預金",
+          "category_code": "AC01",
+          "accounting_element": "ASSET",
+          "normal_balance": "DEBIT",
+          "sort_order": 2
+        },
+        {
+          "account_code": "1210",
+          "account_name": "棚卸資産",
+          "category_code": "AC01",
+          "accounting_element": "ASSET",
+          "normal_balance": "DEBIT",
+          "sort_order": 10
+        },
+        {
+          "account_code": "1290",
+          "account_name": "資金移動中",
+          "category_code": "AC01",
+          "accounting_element": "ASSET",
+          "normal_balance": "DEBIT",
+          "sort_order": 95
+        },
+        {
+          "account_code": "1310",
+          "account_name": "仮払金",
+          "category_code": "AC01",
+          "accounting_element": "ASSET",
+          "normal_balance": "DEBIT",
+          "sort_order": 6
+        },
+        {
+          "account_code": "1320",
+          "account_name": "前払費用",
+          "category_code": "AC01",
+          "accounting_element": "ASSET",
+          "normal_balance": "DEBIT",
+          "sort_order": 7
+        },
+        {
+          "account_code": "1325",
+          "account_name": "貸付金",
+          "category_code": "AC01",
+          "accounting_element": "ASSET",
+          "normal_balance": "DEBIT",
+          "sort_order": 1325
+        },
+        {
+          "account_code": "1330",
+          "account_name": "立替金",
+          "category_code": "AC01",
+          "accounting_element": "ASSET",
+          "normal_balance": "DEBIT",
+          "sort_order": 8
+        },
+        {
+          "account_code": "1340",
+          "account_name": "仮払消費税",
+          "category_code": "AC01",
+          "accounting_element": "ASSET",
+          "normal_balance": "DEBIT",
+          "sort_order": 9
+        },
+        {
+          "account_code": "1510",
+          "account_name": "土地",
+          "category_code": "AC02",
+          "accounting_element": "ASSET",
+          "normal_balance": "DEBIT",
+          "sort_order": 11
+        },
+        {
+          "account_code": "1520",
+          "account_name": "建物",
+          "category_code": "AC02",
+          "accounting_element": "ASSET",
+          "normal_balance": "DEBIT",
+          "sort_order": 12
+        },
+        {
+          "account_code": "1530",
+          "account_name": "建物附属設備",
+          "category_code": "AC02",
+          "accounting_element": "ASSET",
+          "normal_balance": "DEBIT",
+          "sort_order": 13
+        },
+        {
+          "account_code": "1540",
+          "account_name": "構築物",
+          "category_code": "AC02",
+          "accounting_element": "ASSET",
+          "normal_balance": "DEBIT",
+          "sort_order": 14
+        },
+        {
+          "account_code": "1550",
+          "account_name": "工具器具備品",
+          "category_code": "AC02",
+          "accounting_element": "ASSET",
+          "normal_balance": "DEBIT",
+          "sort_order": 15
+        },
+        {
+          "account_code": "1560",
+          "account_name": "車両運搬具",
+          "category_code": "AC02",
+          "accounting_element": "ASSET",
+          "normal_balance": "DEBIT",
+          "sort_order": 16
+        },
+        {
+          "account_code": "1570",
+          "account_name": "建設仮勘定",
+          "category_code": "AC02",
+          "accounting_element": "ASSET",
+          "normal_balance": "DEBIT",
+          "sort_order": 18
+        },
+        {
+          "account_code": "1610",
+          "account_name": "ソフトウェア",
+          "category_code": "AC02",
+          "accounting_element": "ASSET",
+          "normal_balance": "DEBIT",
+          "sort_order": 17
+        },
+        {
+          "account_code": "1710",
+          "account_name": "差入保証金",
+          "category_code": "AC02",
+          "accounting_element": "ASSET",
+          "normal_balance": "DEBIT",
+          "sort_order": 19
+        },
+        {
+          "account_code": "1720",
+          "account_name": "長期前払費用",
+          "category_code": "AC02",
+          "accounting_element": "ASSET",
+          "normal_balance": "DEBIT",
+          "sort_order": 20
+        },
+        {
+          "account_code": "2110",
+          "account_name": "買掛金",
+          "category_code": "AC03",
+          "accounting_element": "LIABILITY",
+          "normal_balance": "CREDIT",
+          "sort_order": 21
+        },
+        {
+          "account_code": "2120",
+          "account_name": "未払金",
+          "category_code": "AC03",
+          "accounting_element": "LIABILITY",
+          "normal_balance": "CREDIT",
+          "sort_order": 22
+        },
+        {
+          "account_code": "2130",
+          "account_name": "未払費用",
+          "category_code": "AC03",
+          "accounting_element": "LIABILITY",
+          "normal_balance": "CREDIT",
+          "sort_order": 23
+        },
+        {
+          "account_code": "2140",
+          "account_name": "仮受金",
+          "category_code": "AC03",
+          "accounting_element": "LIABILITY",
+          "normal_balance": "CREDIT",
+          "sort_order": 24
+        },
+        {
+          "account_code": "2150",
+          "account_name": "前受金",
+          "category_code": "AC03",
+          "accounting_element": "LIABILITY",
+          "normal_balance": "CREDIT",
+          "sort_order": 25
+        },
+        {
+          "account_code": "2160",
+          "account_name": "預り金",
+          "category_code": "AC03",
+          "accounting_element": "LIABILITY",
+          "normal_balance": "CREDIT",
+          "sort_order": 26
+        },
+        {
+          "account_code": "2161",
+          "account_name": "預り金-給料社保",
+          "category_code": "AC03",
+          "accounting_element": "LIABILITY",
+          "normal_balance": "CREDIT",
+          "sort_order": 91
+        },
+        {
+          "account_code": "2170",
+          "account_name": "未払消費税",
+          "category_code": "AC03",
+          "accounting_element": "LIABILITY",
+          "normal_balance": "CREDIT",
+          "sort_order": 27
+        },
+        {
+          "account_code": "2180",
+          "account_name": "短期借入金",
+          "category_code": "AC03",
+          "accounting_element": "LIABILITY",
+          "normal_balance": "CREDIT",
+          "sort_order": 28
+        },
+        {
+          "account_code": "2210",
+          "account_name": "長期借入金",
+          "category_code": "AC04",
+          "accounting_element": "LIABILITY",
+          "normal_balance": "CREDIT",
+          "sort_order": 29
+        },
+        {
+          "account_code": "2220",
+          "account_name": "預り保証金",
+          "category_code": "AC04",
+          "accounting_element": "LIABILITY",
+          "normal_balance": "CREDIT",
+          "sort_order": 30
+        },
+        {
+          "account_code": "2230",
+          "account_name": "預り敷金",
+          "category_code": "AC04",
+          "accounting_element": "LIABILITY",
+          "normal_balance": "CREDIT",
+          "sort_order": 31
+        },
+        {
+          "account_code": "2240",
+          "account_name": "役員借入金",
+          "category_code": "AC04",
+          "accounting_element": "LIABILITY",
+          "normal_balance": "CREDIT",
+          "sort_order": 32
+        },
+        {
+          "account_code": "3110",
+          "account_name": "資本金",
+          "category_code": "AC05",
+          "accounting_element": "EQUITY",
+          "normal_balance": "CREDIT",
+          "sort_order": 33
+        },
+        {
+          "account_code": "3120",
+          "account_name": "資本準備金",
+          "category_code": "AC05",
+          "accounting_element": "EQUITY",
+          "normal_balance": "CREDIT",
+          "sort_order": 34
+        },
+        {
+          "account_code": "3130",
+          "account_name": "利益剰余金",
+          "category_code": "AC05",
+          "accounting_element": "EQUITY",
+          "normal_balance": "CREDIT",
+          "sort_order": 35
+        },
+        {
+          "account_code": "3140",
+          "account_name": "繰越利益剰余金",
+          "category_code": "AC05",
+          "accounting_element": "EQUITY",
+          "normal_balance": "CREDIT",
+          "sort_order": 36
+        },
+        {
+          "account_code": "4110",
+          "account_name": "宿泊売上",
+          "category_code": "AC06",
+          "accounting_element": "REVENUE",
+          "normal_balance": "CREDIT",
+          "sort_order": 37
+        },
+        {
+          "account_code": "4120",
+          "account_name": "賃貸売上",
+          "category_code": "AC06",
+          "accounting_element": "REVENUE",
+          "normal_balance": "CREDIT",
+          "sort_order": 38
+        },
+        {
+          "account_code": "4130",
+          "account_name": "工事売上",
+          "category_code": "AC06",
+          "accounting_element": "REVENUE",
+          "normal_balance": "CREDIT",
+          "sort_order": 39
+        },
+        {
+          "account_code": "4140",
+          "account_name": "管理売上",
+          "category_code": "AC06",
+          "accounting_element": "REVENUE",
+          "normal_balance": "CREDIT",
+          "sort_order": 40
+        },
+        {
+          "account_code": "4150",
+          "account_name": "仲介売上",
+          "category_code": "AC06",
+          "accounting_element": "REVENUE",
+          "normal_balance": "CREDIT",
+          "sort_order": 41
+        },
+        {
+          "account_code": "4160",
+          "account_name": "買取売上",
+          "category_code": "AC06",
+          "accounting_element": "REVENUE",
+          "normal_balance": "CREDIT",
+          "sort_order": 90
+        },
+        {
+          "account_code": "4190",
+          "account_name": "その他営業収入",
+          "category_code": "AC06",
+          "accounting_element": "REVENUE",
+          "normal_balance": "CREDIT",
+          "sort_order": 42
+        },
+        {
+          "account_code": "5110",
+          "account_name": "宿泊原価",
+          "category_code": "AC07",
+          "accounting_element": "EXPENSE",
+          "normal_balance": "DEBIT",
+          "sort_order": 43
+        },
+        {
+          "account_code": "5120",
+          "account_name": "賃貸原価",
+          "category_code": "AC07",
+          "accounting_element": "EXPENSE",
+          "normal_balance": "DEBIT",
+          "sort_order": 44
+        },
+        {
+          "account_code": "5130",
+          "account_name": "工事原価",
+          "category_code": "AC07",
+          "accounting_element": "EXPENSE",
+          "normal_balance": "DEBIT",
+          "sort_order": 45
+        },
+        {
+          "account_code": "5140",
+          "account_name": "管理原価",
+          "category_code": "AC07",
+          "accounting_element": "EXPENSE",
+          "normal_balance": "DEBIT",
+          "sort_order": 46
+        },
+        {
+          "account_code": "5150",
+          "account_name": "仲介原価",
+          "category_code": "AC07",
+          "accounting_element": "EXPENSE",
+          "normal_balance": "DEBIT",
+          "sort_order": 47
+        },
+        {
+          "account_code": "5160",
+          "account_name": "不動産売上原価",
+          "category_code": "AC07",
+          "accounting_element": "EXPENSE",
+          "normal_balance": "DEBIT",
+          "sort_order": 48
+        },
+        {
+          "account_code": "5170",
+          "account_name": "開発原価",
+          "category_code": "AC07",
+          "accounting_element": "EXPENSE",
+          "normal_balance": "DEBIT",
+          "sort_order": 49
+        },
+        {
+          "account_code": "5390",
+          "account_name": "その他営業原価",
+          "category_code": "AC07",
+          "accounting_element": "EXPENSE",
+          "normal_balance": "DEBIT",
+          "sort_order": 50
+        },
+        {
+          "account_code": "6110",
+          "account_name": "給料手当",
+          "category_code": "AC08",
+          "accounting_element": "EXPENSE",
+          "normal_balance": "DEBIT",
+          "sort_order": 58
+        },
+        {
+          "account_code": "6120",
+          "account_name": "賞与",
+          "category_code": "AC08",
+          "accounting_element": "EXPENSE",
+          "normal_balance": "DEBIT",
+          "sort_order": 59
+        },
+        {
+          "account_code": "6130",
+          "account_name": "法定福利費",
+          "category_code": "AC08",
+          "accounting_element": "EXPENSE",
+          "normal_balance": "DEBIT",
+          "sort_order": 60
+        },
+        {
+          "account_code": "6140",
+          "account_name": "福利厚生費",
+          "category_code": "AC08",
+          "accounting_element": "EXPENSE",
+          "normal_balance": "DEBIT",
+          "sort_order": 61
+        },
+        {
+          "account_code": "6150",
+          "account_name": "交際費",
+          "category_code": "AC08",
+          "accounting_element": "EXPENSE",
+          "normal_balance": "DEBIT",
+          "sort_order": 6150
+        },
+        {
+          "account_code": "6210",
+          "account_name": "事務用品費",
+          "category_code": "AC08",
+          "accounting_element": "EXPENSE",
+          "normal_balance": "DEBIT",
+          "sort_order": 62
+        },
+        {
+          "account_code": "6215",
+          "account_name": "消耗品費",
+          "category_code": "AC08",
+          "accounting_element": "EXPENSE",
+          "normal_balance": "DEBIT",
+          "sort_order": 6215
+        },
+        {
+          "account_code": "6220",
+          "account_name": "地代家賃",
+          "category_code": "AC08",
+          "accounting_element": "EXPENSE",
+          "normal_balance": "DEBIT",
+          "sort_order": 63
+        },
+        {
+          "account_code": "6225",
+          "account_name": "修繕費",
+          "category_code": "AC08",
+          "accounting_element": "EXPENSE",
+          "normal_balance": "DEBIT",
+          "sort_order": 6225
+        },
+        {
+          "account_code": "6230",
+          "account_name": "旅費交通費",
+          "category_code": "AC08",
+          "accounting_element": "EXPENSE",
+          "normal_balance": "DEBIT",
+          "sort_order": 64
+        },
+        {
+          "account_code": "6240",
+          "account_name": "車両費",
+          "category_code": "AC08",
+          "accounting_element": "EXPENSE",
+          "normal_balance": "DEBIT",
+          "sort_order": 65
+        },
+        {
+          "account_code": "6245",
+          "account_name": "水道光熱費",
+          "category_code": "AC08",
+          "accounting_element": "EXPENSE",
+          "normal_balance": "DEBIT",
+          "sort_order": 94
+        },
+        {
+          "account_code": "6250",
+          "account_name": "広告宣伝費",
+          "category_code": "AC08",
+          "accounting_element": "EXPENSE",
+          "normal_balance": "DEBIT",
+          "sort_order": 66
+        },
+        {
+          "account_code": "6255",
+          "account_name": "通信費",
+          "category_code": "AC08",
+          "accounting_element": "EXPENSE",
+          "normal_balance": "DEBIT",
+          "sort_order": 92
+        },
+        {
+          "account_code": "6260",
+          "account_name": "支払手数料",
+          "category_code": "AC08",
+          "accounting_element": "EXPENSE",
+          "normal_balance": "DEBIT",
+          "sort_order": 67
+        },
+        {
+          "account_code": "6265",
+          "account_name": "保険料",
+          "category_code": "AC08",
+          "accounting_element": "EXPENSE",
+          "normal_balance": "DEBIT",
+          "sort_order": 6265
+        },
+        {
+          "account_code": "6270",
+          "account_name": "顧問料",
+          "category_code": "AC08",
+          "accounting_element": "EXPENSE",
+          "normal_balance": "DEBIT",
+          "sort_order": 68
+        },
+        {
+          "account_code": "6280",
+          "account_name": "支払報酬",
+          "category_code": "AC08",
+          "accounting_element": "EXPENSE",
+          "normal_balance": "DEBIT",
+          "sort_order": 89
+        },
+        {
+          "account_code": "6285",
+          "account_name": "システム利用料",
+          "category_code": "AC08",
+          "accounting_element": "EXPENSE",
+          "normal_balance": "DEBIT",
+          "sort_order": 93
+        },
+        {
+          "account_code": "6290",
+          "account_name": "租税公課",
+          "category_code": "AC08",
+          "accounting_element": "EXPENSE",
+          "normal_balance": "DEBIT",
+          "sort_order": 72
+        },
+        {
+          "account_code": "6310",
+          "account_name": "減価償却費",
+          "category_code": "AC08",
+          "accounting_element": "EXPENSE",
+          "normal_balance": "DEBIT",
+          "sort_order": 73
+        },
+        {
+          "account_code": "6390",
+          "account_name": "雑費",
+          "category_code": "AC08",
+          "accounting_element": "EXPENSE",
+          "normal_balance": "DEBIT",
+          "sort_order": 74
+        },
+        {
+          "account_code": "7110",
+          "account_name": "受取利息",
+          "category_code": "AC09",
+          "accounting_element": "REVENUE",
+          "normal_balance": "CREDIT",
+          "sort_order": 75
+        },
+        {
+          "account_code": "7120",
+          "account_name": "受取配当金",
+          "category_code": "AC09",
+          "accounting_element": "REVENUE",
+          "normal_balance": "CREDIT",
+          "sort_order": 76
+        },
+        {
+          "account_code": "7130",
+          "account_name": "為替差益",
+          "category_code": "AC09",
+          "accounting_element": "REVENUE",
+          "normal_balance": "CREDIT",
+          "sort_order": 77
+        },
+        {
+          "account_code": "7190",
+          "account_name": "雑収入",
+          "category_code": "AC09",
+          "accounting_element": "REVENUE",
+          "normal_balance": "CREDIT",
+          "sort_order": 78
+        },
+        {
+          "account_code": "8110",
+          "account_name": "支払利息",
+          "category_code": "AC10",
+          "accounting_element": "EXPENSE",
+          "normal_balance": "DEBIT",
+          "sort_order": 79
+        },
+        {
+          "account_code": "8120",
+          "account_name": "為替差損",
+          "category_code": "AC10",
+          "accounting_element": "EXPENSE",
+          "normal_balance": "DEBIT",
+          "sort_order": 80
+        },
+        {
+          "account_code": "8190",
+          "account_name": "雑損失",
+          "category_code": "AC10",
+          "accounting_element": "EXPENSE",
+          "normal_balance": "DEBIT",
+          "sort_order": 81
+        },
+        {
+          "account_code": "9110",
+          "account_name": "固定資産売却益",
+          "category_code": "AC11",
+          "accounting_element": "REVENUE",
+          "normal_balance": "CREDIT",
+          "sort_order": 82
+        },
+        {
+          "account_code": "9190",
+          "account_name": "特別利益",
+          "category_code": "AC11",
+          "accounting_element": "REVENUE",
+          "normal_balance": "CREDIT",
+          "sort_order": 83
+        },
+        {
+          "account_code": "9210",
+          "account_name": "固定資産売却損",
+          "category_code": "AC12",
+          "accounting_element": "EXPENSE",
+          "normal_balance": "DEBIT",
+          "sort_order": 84
+        },
+        {
+          "account_code": "9290",
+          "account_name": "特別損失",
+          "category_code": "AC12",
+          "accounting_element": "EXPENSE",
+          "normal_balance": "DEBIT",
+          "sort_order": 85
+        },
+        {
+          "account_code": "9310",
+          "account_name": "法人税",
+          "category_code": "AC13",
+          "accounting_element": "EXPENSE",
+          "normal_balance": "DEBIT",
+          "sort_order": 86
+        },
+        {
+          "account_code": "9320",
+          "account_name": "住民税",
+          "category_code": "AC13",
+          "accounting_element": "EXPENSE",
+          "normal_balance": "DEBIT",
+          "sort_order": 87
+        },
+        {
+          "account_code": "9330",
+          "account_name": "事業税",
+          "category_code": "AC13",
+          "accounting_element": "EXPENSE",
+          "normal_balance": "DEBIT",
+          "sort_order": 88
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent><groupId>com.richuang</groupId><artifactId>os-nocode</artifactId><version>${revision}</version></parent>
+    <artifactId>os-nocode-runtime</artifactId>
+    <dependencies>
+        <!-- 独立报表的来源契约与设计校验；不替换既有应用 REPORT 运行协议。 -->
+        <dependency><groupId>com.richuang</groupId><artifactId>os-nocode-report</artifactId><version>${revision}</version></dependency>
+        <!-- 任务中心评论提醒复用底座消息 API，与网盘业务融合依赖同时保留。 -->
+        <dependency><groupId>com.richuang</groupId><artifactId>os-module-msg-api</artifactId><version>${revision}</version></dependency>
+        <dependency><groupId>com.richuang</groupId><artifactId>os-nocode-application</artifactId><version>${revision}</version></dependency>
+        <dependency><groupId>com.richuang</groupId><artifactId>os-nocode-work</artifactId><version>${revision}</version></dependency>
+        <!-- 网盘业务融合：仅依赖领域 API 契约，实现由 os-module-drive 装配提供 -->
+        <dependency><groupId>com.richuang</groupId><artifactId>os-module-drive-api</artifactId><version>${revision}</version></dependency>
+        <!-- 过期临时上传清理按 JobHandler 模式注册定时任务 -->
+        <dependency><groupId>com.richuang</groupId><artifactId>os-spring-boot-starter-job</artifactId></dependency>
+        <dependency>
+            <groupId>com.richuang</groupId>
+            <artifactId>os-spring-boot-starter-biz-data-permission</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.postgresql</groupId>
+            <artifactId>postgresql</artifactId>
+        </dependency>
+    </dependencies>
+</project>

@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="os-page-designer" content="editor" />
+    <title>页面设计器 - 日创 OS 平台</title>
+    <script>
+      // 模块加载失败也应反馈给宿主页，避免一直停留在加载状态。
+      const report = () =>
+        parent.postMessage(
+          {
+            channel: 'os-page-designer',
+            type: 'ERROR',
+            message: '页面设计器初始化失败，请重新打开；如仍失败，请检查编辑器静态资源。'
+          },
+          location.origin
+        )
+      // 资源 error 不冒泡，使用捕获阶段才能收到脚本加载失败。
+      addEventListener(
+        'error',
+        event => {
+          // 浏览器会把本帧未完成的尺寸通知延至下一帧，这不代表画布初始化失败。
+          if (
+            event.target === window &&
+            !event.error &&
+            [
+              'ResizeObserver loop completed with undelivered notifications.',
+              'ResizeObserver loop limit exceeded'
+            ].includes(event.message)
+          )
+            return
+          if (
+            event.target === window ||
+            event.target instanceof HTMLScriptElement ||
+            event.target instanceof HTMLLinkElement
+          )
+            report()
+        },
+        true
+      )
+      addEventListener('unhandledrejection', report)
+      // 嵌套画布发生异常时，由编辑器转发，宿主仍只信任自己的直属 iframe。
+      addEventListener('message', event => {
+        if (
+          event.origin === location.origin &&
+          event.source === document.querySelector('iframe#canvas')?.contentWindow &&
+          event.data?.channel === 'os-page-canvas' &&
+          event.data.type === 'ERROR'
+        )
+          report()
+      })
+    </script>
+  </head>
+  <body class="os-page-editor">
+    <div id="app"></div>
+    <script type="module" src="/main.js"></script>
+  </body>
+</html>

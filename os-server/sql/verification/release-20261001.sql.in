@@ -1,0 +1,265 @@
+-- 日创 OS 线上增量：2026-09-26 18:08（V037）至 2026-10-01 当前工程（V051）。
+-- 与原 run-sql.sh 放在同目录，执行：sh run-sql.sh upgrade_20261001_v038_v051_r2.sql
+-- 只交付此 SQL；不用上传 Java、Node 或构建辅助文件。
+-- 原 sh 负责全库备份、ON_ERROR_STOP 和单事务；务必整体运行，不拆段执行。
+-- 执行前暂停所有应用实例的写入，成功后再启动本次配套代码。
+-- 含 V038 网盘存储、V039 公式校准、V040-V046 任务中心、V047-V051 网盘业务文件融合。
+-- 新拉取分支原 V040-V044 与本地任务中心重号；内容不变，统一顺延为 V047-V051。
+-- 新字段规则与透视报表复用现有 JSON/业务表，无需额外 DDL 或存量配置批量转换。
+-- 不清空已有数据，不导入开发样例；保留网盘配置、公式校准进度、既有任务及业务记录。
+-- V040 按原迁移为已有“我的任务”角色继承新任务菜单；不会授予 manage-all 或网盘存储管理权限。
+-- V043/V044 按原迁移回填任务计划来源及普通/流程任务类型；不改变原任务 ID 与业务关联。
+-- 业务文件不迁移历史附件；新增清理任务处于待同步状态，部署后按需在定时任务页“同步任务”。
+-- 兼容已手动执行 V038/V039 或其他中间版本；结构异常、校验和异常时整体回滚。
+-- 历史完整才登记原始 Flyway 身份；无历史或历史缺项时不创建历史、不伪造旧迁移。
+-- PostgreSQL 15+；UTF-8 无 BOM。历史版本的原始文件没有被修改。
+-- 修订 R2：统一 public、pg_temp 别名及物理临时 schema 的结构定义，避免临时验证基准误报。
+
+SET LOCAL lock_timeout = '10s';
+SET LOCAL statement_timeout = '10min';
+SET LOCAL search_path = pg_catalog, public;
+SELECT current_database() AS target_database,current_user AS executing_user,
+       inet_server_addr() AS server_address,inet_server_port() AS server_port;
+
+CREATE TEMP TABLE nocode_release_identity ON COMMIT DROP AS
+SELECT * FROM jsonb_to_recordset(/* HISTORY */)
+AS v(version integer,script text,checksum integer,description text);
+CREATE TEMP TABLE nocode_release_plan (
+    version integer PRIMARY KEY,markers jsonb NOT NULL,contract jsonb NOT NULL,body text NOT NULL
+) ON COMMIT DROP;
+
+/* PLANS */
+
+CREATE TEMP TABLE nocode_release_final (contract jsonb NOT NULL) ON COMMIT DROP;
+INSERT INTO nocode_release_final VALUES (/* FINAL CONTRACT */);
+
+-- 所有校验辅助对象仅存在于当前连接的临时 schema，连接结束自动消失。
+CREATE OR REPLACE FUNCTION pg_temp.nocode_release_contract(expected jsonb) RETURNS void
+LANGUAGE plpgsql AS $contract$
+DECLARE t jsonb; x jsonb; tab oid; final_table jsonb; alternatives jsonb;
+BEGIN
+ FOR t IN SELECT * FROM jsonb_array_elements(expected) LOOP
+  tab:=to_regclass('public.' || (t->>'table'));
+  SELECT value INTO final_table FROM nocode_release_final,
+       LATERAL jsonb_array_elements(contract) WHERE value->>'table'=t->>'table';
+  IF tab IS NULL OR NOT EXISTS(SELECT 1 FROM pg_class WHERE oid=tab AND relkind='r'
+     AND NOT relrowsecurity AND NOT relforcerowsecurity) THEN
+   RAISE EXCEPTION '表 % 缺失、类型错误或存在额外行安全策略，停止升级。',t->>'table';
+  END IF;
+  FOR x IN SELECT * FROM jsonb_array_elements(t->'columns') LOOP
+   SELECT jsonb_build_array(x)||COALESCE(jsonb_agg(value),'[]'::jsonb) INTO alternatives
+       FROM jsonb_array_elements(final_table->'columns') WHERE value->>'name'=x->>'name';
+   IF NOT EXISTS(SELECT 1 FROM pg_attribute a LEFT JOIN pg_attrdef d ON d.adrelid=a.attrelid AND d.adnum=a.attnum
+       CROSS JOIN LATERAL jsonb_array_elements(alternatives) candidate
+       WHERE a.attrelid=tab AND a.attname=x->>'name' AND a.attnum>0 AND NOT a.attisdropped
+       AND format_type(a.atttypid,a.atttypmod)=candidate->>'type' AND a.attnotnull=(candidate->>'notnull')::boolean
+       AND a.attidentity::text=candidate->>'identity' AND a.attgenerated::text=candidate->>'generated'
+       AND pg_get_expr(d.adbin,d.adrelid) IS NOT DISTINCT FROM candidate->>'default') THEN
+    RAISE EXCEPTION '列 %.% 与原始迁移定义不一致，停止升级。',t->>'table',x->>'name';
+   END IF;
+  END LOOP;
+  FOR x IN SELECT * FROM jsonb_array_elements(t->'constraints') LOOP
+   SELECT jsonb_build_array(x)||COALESCE(jsonb_agg(value),'[]'::jsonb) INTO alternatives
+       FROM jsonb_array_elements(final_table->'constraints') WHERE value->>'name'=x->>'name';
+   IF NOT EXISTS(SELECT 1 FROM pg_constraint c CROSS JOIN LATERAL jsonb_array_elements(alternatives) candidate
+       WHERE c.conrelid=tab AND c.conname=x->>'name'
+       AND c.convalidated AND NOT c.condeferrable
+       AND regexp_replace(pg_get_constraintdef(c.oid),'(public|pg_temp(_[0-9]+)?)\.', '', 'g')=candidate->>'definition') THEN
+    RAISE EXCEPTION '约束 %.% 与原始迁移定义不一致，停止升级。',t->>'table',x->>'name';
+   END IF;
+  END LOOP;
+  FOR x IN SELECT * FROM jsonb_array_elements(t->'indexes') LOOP
+   SELECT jsonb_build_array(x)||COALESCE(jsonb_agg(value),'[]'::jsonb) INTO alternatives
+       FROM jsonb_array_elements(final_table->'indexes') WHERE value->>'name'=x->>'name';
+   IF NOT EXISTS(SELECT 1 FROM pg_index i JOIN pg_class n ON n.oid=i.indexrelid
+       CROSS JOIN LATERAL jsonb_array_elements(alternatives) candidate
+       WHERE i.indrelid=tab AND n.relname=x->>'name' AND i.indisvalid AND i.indisready
+       AND regexp_replace(pg_get_indexdef(i.indexrelid),'(public|pg_temp(_[0-9]+)?)\.', '', 'g')=candidate->>'definition') THEN
+    RAISE EXCEPTION '索引 %.% 与原始迁移定义不一致，停止升级。',t->>'table',x->>'name';
+   END IF;
+  END LOOP;
+ END LOOP;
+END $contract$;
+
+DO $release$
+DECLARE
+    has_history boolean:=to_regclass('public.nocode_schema_history') IS NOT NULL;
+    complete_history boolean:=false;
+    recorded boolean;
+    p record; identity_row record; marker jsonb; marker_present boolean;
+    present_count integer; max_version integer; required_name text;
+    drive_menu bigint; dashboard bigint; mine bigint; folder bigint; menu_id bigint;
+    expected_menu record; receipt oid; receipt_index oid;
+    started_at timestamptz; applied integer:=0; checked integer:=0;
+BEGIN
+    IF current_setting('server_version_num')::integer<150000 THEN
+        RAISE EXCEPTION '本增量要求 PostgreSQL 15 或更新版本。';
+    END IF;
+    PERFORM pg_advisory_xact_lock(20261001,3846);
+    FOREACH required_name IN ARRAY ARRAY['nocode_object','nocode_application','nocode_document_receipt',
+        'infra_file_config','system_menu','system_menu_seq','system_role_menu','system_role_menu_seq','sys_msg_template',
+        'drive_entry','drive_space','infra_job','infra_job_seq'] LOOP
+        IF to_regclass('public.'||required_name) IS NULL THEN
+            RAISE EXCEPTION '缺少基线对象 %，目标库不符合本次升级前提。',required_name;
+        END IF;
+    END LOOP;
+    -- V037 是本次增量的真实前提，不按部署日期猜测线上结构，也不重放之前的清理迁移。
+    receipt:=to_regclass('public.nocode_document_receipt');
+    receipt_index:=to_regclass('public.nocode_document_receipt_maintenance_request');
+    IF NOT EXISTS(SELECT 1 FROM pg_attribute WHERE attrelid=receipt AND attname='application_id'
+        AND NOT attisdropped AND atttypid='bigint'::regtype AND NOT attnotnull)
+       OR NOT EXISTS(SELECT 1 FROM pg_index i WHERE i.indexrelid=receipt_index AND i.indrelid=receipt
+         AND i.indisunique AND i.indisvalid AND i.indisready AND NOT i.indnullsnotdistinct
+         AND i.indnkeyatts=4 AND i.indnatts=4 AND i.indexprs IS NULL
+         AND pg_get_expr(i.indpred,i.indrelid)='(application_id IS NULL)'
+         AND (SELECT array_agg(a.attname::text ORDER BY k.n) FROM unnest(i.indkey) WITH ORDINALITY k(num,n)
+              JOIN pg_attribute a ON a.attrelid=receipt AND a.attnum=k.num)
+             =ARRAY['creator','object_id','operation','request_key']::text[]) THEN
+        RAISE EXCEPTION 'V037 收据表实际结构未就绪；需先完成此前 V037 增量，本文件不会执行旧版本。';
+    END IF;
+    IF has_history THEN
+        LOCK TABLE public.nocode_schema_history IN EXCLUSIVE MODE;
+        IF EXISTS(SELECT 1 FROM public.nocode_schema_history WHERE NOT success)
+           OR EXISTS(SELECT 1 FROM public.nocode_schema_history
+                     WHERE version IS NOT NULL AND (version !~ '^[0-9]+$'
+                     OR CASE WHEN version ~ '^[0-9]+$' THEN version::numeric>51 ELSE false END)) THEN
+            RAISE EXCEPTION '迁移历史有失败项、未知版本或高于 V051，停止升级。';
+        END IF;
+        FOR identity_row IN SELECT * FROM nocode_release_identity LOOP
+            IF (SELECT count(*) FROM public.nocode_schema_history
+                WHERE ltrim(version,'0')=identity_row.version::text)>1
+               OR EXISTS(SELECT 1 FROM public.nocode_schema_history h
+                   WHERE ltrim(h.version,'0')=identity_row.version::text
+                     AND (h.type='SQL' OR identity_row.version>=37)
+                     AND (h.type<>'SQL' OR h.script IS DISTINCT FROM identity_row.script
+                          OR h.checksum IS DISTINCT FROM identity_row.checksum)) THEN
+                RAISE EXCEPTION 'V% 历史重复或校验和/文件身份不一致；不会自动 repair。',identity_row.version;
+            END IF;
+        END LOOP;
+        SELECT max(version::integer) INTO max_version FROM public.nocode_schema_history WHERE version ~ '^[0-9]+$';
+        SELECT max_version>=37 AND NOT EXISTS(SELECT 1 FROM generate_series(1,max_version) n
+            WHERE NOT EXISTS(SELECT 1 FROM public.nocode_schema_history h
+                WHERE ltrim(h.version,'0')=n::text AND h.type='SQL' AND h.success)) INTO complete_history;
+        IF complete_history IS DISTINCT FROM true THEN
+            RAISE NOTICE '历史不连续完整：按真实结构执行增量，保留原历史，不补造或跳号登记。';
+        END IF;
+    ELSE
+        RAISE NOTICE '无迁移历史表：按真实结构执行增量，不创建历史表、不补造旧版本。';
+    END IF;
+
+    LOCK TABLE public.system_menu,public.system_role_menu,public.sys_msg_template IN SHARE ROW EXCLUSIVE MODE;
+    SELECT id INTO STRICT drive_menu FROM public.system_menu WHERE deleted=0 AND type=2 AND path='/drive/space';
+    SELECT id INTO STRICT dashboard FROM public.system_menu WHERE deleted=0 AND parent_id=0 AND path='/dashboard';
+    SELECT id INTO STRICT mine FROM public.system_menu WHERE deleted=0 AND type=2 AND path='/nocode-app/task-center';
+
+    FOR p IN SELECT * FROM nocode_release_plan ORDER BY version LOOP
+        started_at:=clock_timestamp(); recorded:=false; present_count:=0;
+        IF has_history THEN
+            SELECT EXISTS(SELECT 1 FROM public.nocode_schema_history WHERE ltrim(version,'0')=p.version::text)
+            INTO recorded;
+        END IF;
+        FOR marker IN SELECT * FROM jsonb_array_elements(p.markers) LOOP
+            IF marker ? 'relation' THEN
+                marker_present:=to_regclass('public.'||(marker->>'relation')) IS NOT NULL;
+            ELSIF marker ? 'column' THEN
+                SELECT EXISTS(SELECT 1 FROM pg_attribute WHERE attrelid=to_regclass('public.'||(marker->>'table'))
+                  AND attname=marker->>'column' AND NOT attisdropped AND attnum>0) INTO marker_present;
+            ELSIF marker ? 'permission' THEN
+                SELECT EXISTS(SELECT 1 FROM public.system_menu WHERE deleted=0 AND permission=marker->>'permission') INTO marker_present;
+            ELSIF marker ? 'topLevel' THEN
+                SELECT EXISTS(SELECT 1 FROM public.system_menu WHERE deleted=0 AND path=marker->>'topLevel' AND parent_id=0) INTO marker_present;
+            END IF;
+            IF marker_present THEN present_count:=present_count+1; END IF;
+        END LOOP;
+        IF present_count<>0 AND present_count<>jsonb_array_length(p.markers) THEN
+            RAISE EXCEPTION 'V% 结构仅存在一部分（%/%），保留现场并停止；不猜测修复或删除已有表。',p.version,present_count,jsonb_array_length(p.markers);
+        END IF;
+        IF recorded AND present_count=0 THEN
+            RAISE EXCEPTION 'V% 已登记但结构或必要配置缺失，停止；不重建空表掩盖数据缺失。',p.version;
+        END IF;
+        IF present_count=0 THEN
+            -- 对不可重复的数据迁移只执行一次，重跑不能覆盖后来用户维护的值。
+            IF p.version=40 THEN
+                IF EXISTS(SELECT 1 FROM public.system_menu WHERE deleted=0 AND path IN
+                    ('/task-center','/nocode-app/task-center/manage','/nocode-app/task-center/launch','/nocode-app/task-center/templates'))
+                    OR EXISTS(SELECT 1 FROM public.sys_msg_template WHERE id=-9040001 AND (code<>'nocode-task-comment' OR deleted<>0)) THEN
+                    RAISE EXCEPTION '任务中心菜单或消息模板 ID 与旧数据冲突，停止升级。';
+                END IF;
+            END IF;
+            EXECUTE p.body;
+            applied:=applied+1;
+            RAISE NOTICE 'V%：本次已执行原始增量。',p.version;
+        ELSE
+            checked:=checked+1;
+            RAISE NOTICE 'V%：结构已存在，核验并保留已有数据。',p.version;
+        END IF;
+        PERFORM pg_temp.nocode_release_contract(p.contract);
+        IF p.version=38 THEN
+            IF (SELECT count(*) FROM public.drive_storage_setting WHERE id=1)<>1 THEN
+                RAISE EXCEPTION '网盘存储配置单例缺失，停止升级。';
+            END IF;
+            FOREACH required_name IN ARRAY ARRAY['drive:storage:query','drive:storage:update'] LOOP
+                IF (SELECT count(*) FROM public.system_menu WHERE permission=required_name AND deleted=0)<>1
+                   OR NOT EXISTS(SELECT 1 FROM public.system_menu WHERE permission=required_name AND deleted=0 AND type=3 AND parent_id=drive_menu) THEN
+                    RAISE EXCEPTION '网盘权限 % 缺失、重复或挂载错误。',required_name;
+                END IF;
+            END LOOP;
+        ELSIF p.version=40 THEN
+            SELECT id INTO STRICT folder FROM public.system_menu WHERE deleted=0 AND path='/task-center' AND type=1;
+            IF NOT EXISTS(SELECT 1 FROM public.system_menu WHERE id=folder AND creator='task-center-migration' AND parent_id IN (0,dashboard)) THEN
+                RAISE EXCEPTION '任务中心目录与原始迁移不一致，停止升级。';
+            END IF;
+            FOR expected_menu IN SELECT * FROM (VALUES
+                ('/nocode-app/task-center','nocode:task:query'),
+                ('/nocode-app/task-center/manage','nocode:task:query'),
+                ('/nocode-app/task-center/launch','nocode:task:create'),
+                ('/nocode-app/task-center/templates','nocode:task:template')) m(path,permission) LOOP
+                IF (SELECT count(*) FROM public.system_menu WHERE path=expected_menu.path AND deleted=0)<>1
+                   OR NOT EXISTS(SELECT 1 FROM public.system_menu WHERE path=expected_menu.path AND deleted=0
+                         AND parent_id=folder AND type=2 AND permission=expected_menu.permission AND component='nocode/task-center/index') THEN
+                    RAISE EXCEPTION '任务子菜单 % 缺失、重复或定义不一致。',expected_menu.path;
+                END IF;
+            END LOOP;
+            IF (SELECT count(*) FROM public.sys_msg_template WHERE code='nocode-task-comment' AND deleted=0)<>1 THEN
+                RAISE EXCEPTION '任务评论消息模板缺失或重复。';
+            END IF;
+        ELSIF p.version=41 THEN
+            SELECT id INTO STRICT menu_id FROM public.system_menu WHERE path='/nocode-app/task-center/manage' AND deleted=0;
+            IF (SELECT count(*) FROM public.system_menu WHERE permission='nocode:task:manage-all' AND deleted=0)<>1
+               OR NOT EXISTS(SELECT 1 FROM public.system_menu WHERE permission='nocode:task:manage-all' AND deleted=0 AND type=3 AND parent_id=menu_id) THEN
+                RAISE EXCEPTION '管理全部任务权限定义缺失、重复或挂载错误。';
+            END IF;
+        ELSIF p.version=42 THEN
+            IF NOT EXISTS(SELECT 1 FROM public.system_menu WHERE id=folder AND parent_id=0) THEN
+                RAISE EXCEPTION '任务中心未成为一级导航，停止升级。';
+            END IF;
+        ELSIF p.version=50 THEN
+            SELECT id INTO STRICT menu_id FROM public.system_menu WHERE deleted=0 AND type=1 AND path='/drive';
+            IF (SELECT count(*) FROM public.system_menu WHERE deleted=0 AND path='/drive/business')<>1
+               OR NOT EXISTS(SELECT 1 FROM public.system_menu WHERE deleted=0 AND path='/drive/business'
+                   AND type=2 AND parent_id=menu_id AND component='drive/business' AND permission='drive:business:query') THEN
+                RAISE EXCEPTION '业务文件菜单缺失、重复或挂载错误。';
+            END IF;
+        ELSIF p.version=51 THEN
+            IF (SELECT count(*) FROM public.infra_job WHERE deleted=0 AND handler_name='bizUploadCleanJob')<>1 THEN
+                RAISE EXCEPTION '业务临时文件清理任务缺失或重复。';
+            END IF;
+        END IF;
+        IF has_history AND complete_history AND NOT recorded THEN
+            SELECT * INTO STRICT identity_row FROM nocode_release_identity WHERE version=p.version;
+            INSERT INTO public.nocode_schema_history(installed_rank,version,description,type,script,checksum,
+                installed_by,installed_on,execution_time,success)
+            SELECT COALESCE(max(installed_rank),0)+1,lpad(p.version::text,3,'0'),identity_row.description,'SQL',
+                identity_row.script,identity_row.checksum,current_user,localtimestamp,
+                (extract(epoch FROM clock_timestamp()-started_at)*1000)::integer,true FROM public.nocode_schema_history;
+        END IF;
+    END LOOP;
+    PERFORM pg_temp.nocode_release_contract((SELECT contract FROM nocode_release_final));
+    RAISE NOTICE 'V038-V051 全部核验通过；本次执行 % 个版本，保留并核验 % 个版本。',applied,checked;
+    RAISE NOTICE '最终是否提交以 run-sql.sh 的“执行成功，事务已提交”及退出码 0 为准。';
+END $release$;
+
+SELECT 'V051' AS target_version,'V038-V051 全部完成' AS result,
+       (SELECT count(*) FROM public.system_menu WHERE deleted=0 AND path='/task-center' AND parent_id=0) AS task_center_l1,
+       (SELECT count(*) FROM public.system_menu WHERE deleted=0 AND permission='nocode:task:manage-all') AS task_admin_permission,
+       to_regclass('public.nocode_task_entry_record_task_idx') AS task_feedback_index;

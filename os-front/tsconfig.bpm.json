@@ -1,0 +1,13 @@
+{
+  "extends": "./tsconfig.nocode.json",
+  "compilerOptions": { "lib": ["ES2022", "DOM", "DOM.Iterable"] },
+  "include": [
+    "src/views/bpm/model/form/**/*.ts",
+    "src/views/bpm/model/form/**/*.vue",
+    "src/views/bpm/processInstance/detail/index.vue",
+    "src/views/bpm/processInstance/create/modules/form.vue",
+    "src/views/bpm/components/simple-process-design/**/*.vue",
+    "src/views/bpm/components/bpmn-process-designer/package/designer/ProcessDesigner.vue",
+    "src/nocode/flow-task-binding.ts"
+  ]
+}

@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xmlns="http://maven.apache.org/POM/4.0.0"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <parent>
+        <groupId>com.richuang</groupId>
+        <artifactId>os-module-bpm</artifactId>
+        <version>${revision}</version>
+    </parent>
+    <modelVersion>4.0.0</modelVersion>
+    <artifactId>os-module-bpm-core</artifactId>
+    <packaging>jar</packaging>
+
+    <name>${project.artifactId}</name>
+    <description>
+        bpm 包下，业务流程管理（Business Process Management），我们放工作流的功能。
+        例如说：流程定义、表单配置、审核中心（我的申请、我的待办、我的已办）等等
+        bpm 解释：https://baike.baidu.com/item/BPM/1933
+
+        工作流基于 Flowable 6 实现，分成流程定义、流程表单、流程实例、流程任务等功能模块。
+    </description>
+
+    <dependencies>
+        <dependency>
+            <groupId>com.richuang</groupId>
+            <artifactId>os-module-bpm-api</artifactId>
+            <version>${revision}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.richuang</groupId>
+            <artifactId>os-module-system</artifactId>
+            <version>${revision}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.richuang</groupId>
+            <artifactId>os-module-msg-api</artifactId>
+            <version>${revision}</version>
+        </dependency>
+
+        <!-- 业务组件 -->
+        <dependency>
+            <groupId>com.richuang</groupId>
+            <artifactId>os-spring-boot-starter-biz-data-permission</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.richuang</groupId>
+            <artifactId>os-spring-boot-starter-biz-tenant</artifactId>
+        </dependency>
+
+        <!-- Web 相关 -->
+        <dependency>
+            <groupId>com.richuang</groupId>
+            <artifactId>os-spring-boot-starter-web</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.richuang</groupId>
+            <artifactId>os-spring-boot-starter-security</artifactId>
+        </dependency>
+
+        <!-- DB 相关 -->
+        <dependency>
+            <groupId>com.richuang</groupId>
+            <artifactId>os-spring-boot-starter-mybatis</artifactId>
+        </dependency>
+
+        <!-- 工具类相关 -->
+        <dependency>
+            <groupId>com.richuang</groupId>
+            <artifactId>os-spring-boot-starter-excel</artifactId>
+        </dependency>
+
+        <!-- Flowable 工作流相关 -->
+        <dependency>
+            <groupId>org.flowable</groupId>
+            <artifactId>flowable-spring-boot-starter-process</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.flowable</groupId>
+            <artifactId>flowable-spring-boot-starter-actuator</artifactId>
+        </dependency>
+    </dependencies>
+    <build>
+        <testResources>
+            <testResource>
+                <directory>src/test/resources</directory>
+            </testResource>
+            <!-- 与无代码工具测试一致，读取正式启动配置，不维护第二份数据库配置。 -->
+            <testResource>
+                <directory>${project.basedir}/../../os-server/src/main/resources</directory>
+                <filtering>false</filtering>
+                <includes>
+                    <include>application*.yml</include>
+                </includes>
+            </testResource>
+        </testResources>
+    </build>
+</project>
