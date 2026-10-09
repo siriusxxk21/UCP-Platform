@@ -102,32 +102,34 @@ coverage/
 **/__tests__/
 *.test.*
 *.spec.*
-!os-front/src/nocode/*.test.ts
-!os-front/tools/selection-regression/*.test.ts
-!os-front/tools/workflow-regression/*.test.ts
-!os-front/tools/task-regression/*.test.ts
-!os-front/src/router/navigationTabs.test.ts
-!os-front/src/stores/navigationTabs.test.ts
-!os-front/src/components/os-table-page/conditionSummary.test.ts
-!os-front/src/utils/menuNavigation.test.ts
-!os-front/tests/unit/nocode-transport.test.ts
-!os-server/os-nocode/**/src/test/
-!os-server/os-nocode/**/src/test/**
-!os-server/sql/*.test.mjs
-!os-server/os-module-system/src/test/
-!os-server/os-module-system/src/test/**
+!ucp-front/src/nocode/*.test.ts
+!ucp-front/tools/selection-regression/*.test.ts
+!ucp-front/tools/workflow-regression/*.test.ts
+!ucp-front/tools/task-regression/*.test.ts
+!ucp-front/src/router/navigationTabs.test.ts
+!ucp-front/src/stores/navigationTabs.test.ts
+!ucp-front/src/components/ucp-table-page/conditionSummary.test.ts
+!ucp-front/src/utils/menuNavigation.test.ts
+!ucp-front/tests/unit/nocode-transport.test.ts
+!ucp-server/ucp-nocode/**/src/test/
+!ucp-server/ucp-nocode/**/src/test/**
+!ucp-server/sql/*.test.mjs
+!ucp-server/ucp-module-system/src/test/
+!ucp-server/ucp-module-system/src/test/**
 # 网盘权限与业务空间回归随实现交付。
-!os-server/os-module-drive/src/test/
-!os-server/os-module-drive/src/test/**
+!ucp-server/ucp-module-drive/src/test/
+!ucp-server/ucp-module-drive/src/test/**
 # 流程候选人及真实持久化回归随代码交付，避免缺失测试基类只在本机暴露。
-!os-server/os-module-bpm/os-module-bpm-core/src/test/
-!os-server/os-module-bpm/os-module-bpm-core/src/test/**
+!ucp-server/ucp-module-bpm/ucp-module-bpm-core/src/test/
+!ucp-server/ucp-module-bpm/ucp-module-bpm-core/src/test/**
 # 访问日志/错误日志脱敏的安全回归随代码交付（防止明文密码再次落进日志与 infra_api_*_log）。
-!os-server/os-framework/os-spring-boot-starter-web/src/test/
-!os-server/os-framework/os-spring-boot-starter-web/src/test/**
+!ucp-server/ucp-framework/ucp-spring-boot-starter-web/src/test/
+!ucp-server/ucp-framework/ucp-spring-boot-starter-web/src/test/**
+!ucp-server/ucp-framework/ucp-spring-boot-starter-redis/src/test/
+!ucp-server/ucp-framework/ucp-spring-boot-starter-redis/src/test/**
 # 对象规则迁移工具在完整装配上的启动自检（工具进程不启动任何后台作业）随代码交付。
-!os-server/os-server/src/test/
-!os-server/os-server/src/test/**
+!ucp-server/ucp-server/src/test/
+!ucp-server/ucp-server/src/test/**
 !devops-ui/src/realtime/adapters.git-sync.spec.ts
 !devops-ui/src/views/project/space/git/utils/repositoryUrl.spec.ts
 !devops-ui/src/components/feedback/feedbackScreenshotHistory.spec.ts
@@ -139,7 +141,7 @@ coverage/
 # ============================================
 
 # 无代码工具的运行材料、日志、凭据和恢复备份不进入仓库；一次性脚本仍需执行后删除。
-/os-server/os-nocode/.work/
+/ucp-server/ucp-nocode/.work/
 
 *.tmp
 *.temp
@@ -171,7 +173,7 @@ upload/
 GEMINI.md
 graphify-out
 *.py
-!os-front/tools/data-form-regression/verify-permission-export.py
+!ucp-front/tools/data-form-regression/verify-permission-export.py
 /.codebuddy/
 /.context/
 /.qoder/

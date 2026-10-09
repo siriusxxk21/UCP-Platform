@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lingan.ucp.module.system.legacy.mapper.SysUserDeptMapper">
+
+    <resultMap id="UserDeptVOResultMap" type="com.lingan.ucp.module.system.legacy.vo.UserDeptVO">
+        <id column="id" property="id"/>
+        <result column="user_id" property="userId"/>
+        <result column="username" property="username"/>
+        <result column="nickname" property="nickname"/>
+        <result column="phone" property="phone"/>
+        <result column="email" property="email"/>
+        <result column="user_status" property="userStatus"/>
+        <result column="post" property="post"/>
+        <result column="is_main" property="isMain"/>
+        <result column="create_time" property="createTime"/>
+    </resultMap>
+
+    <!-- 获取部门用户列表（分页） -->
+    <select id="selectDeptUsersPage" resultMap="UserDeptVOResultMap">
+        SELECT ud.id, ud.user_id, u.username, u.nickname, u.phone, u.email,
+        u.status AS user_status, ud.post, ud.is_main, ud.create_time
+        FROM sys_user_dept ud
+        INNER JOIN sys_user u ON ud.user_id = u.id
+        WHERE ud.dept_id = #{deptId}
+        AND u.deleted = 0
+        <if test="username != null and username != ''">
+            AND (u.username LIKE CONCAT('%', #{username}, '%')
+            OR u.nickname LIKE CONCAT('%', #{username}, '%'))
+        </if>
+        ORDER BY ud.is_main DESC, ud.create_time ASC
+    </select>
+
+    <!-- 获取部门用户列表 -->
+    <select id="selectDeptUsers" resultMap="UserDeptVOResultMap">
+        SELECT ud.id,
+        ud.user_id,
+        u.username,
+        u.nickname,
+        u.phone,
+        u.email,
+        u.status AS user_status,
+        ud.post,
+        ud.is_main,
+        ud.create_time
+        FROM sys_user_dept ud
+        INNER JOIN sys_user u ON ud.user_id = u.id
+        WHERE ud.dept_id = #{deptId}
+        AND u.deleted = 0
+        ORDER BY ud.is_main DESC, ud.create_time ASC
+    </select>
+
+    <!-- 获取可添加到部门的用户（分页） -->
+    <select id="selectAvailableUsersPage" resultMap="UserDeptVOResultMap">
+        SELECT u.id AS user_id, u.username, u.nickname, u.phone, u.email, u.status AS user_status
+        FROM sys_user u
+        WHERE u.deleted = 0
+        AND u.id NOT IN (
+        SELECT ud.user_id FROM sys_user_dept ud WHERE ud.dept_id = #{deptId}
+        )
+        <if test="username != null and username != ''">
+            AND (u.username LIKE CONCAT('%', CONCAT(#{username}, '%'))
+            OR u.nickname LIKE CONCAT('%', CONCAT(#{username}, '%')))
+        </if>
+        ORDER BY u.username
+    </select>
+
+    <!-- 获取可添加到部门的用户（不分页） -->
+    <select id="selectAvailableUsers" resultMap="UserDeptVOResultMap">
+        SELECT
+        t.user_id, t.username, t.nickname, t.phone, t.email, t.user_status
+        FROM (
+        SELECT
+        u.id AS user_id, u.username, u.nickname, u.phone, u.email, u.status AS user_status,
+        ROW_NUMBER() OVER (ORDER BY u.username) AS rank_num
+        FROM sys_user u
+        WHERE u.deleted = 0
+        AND u.id NOT IN (
+        SELECT ud.user_id FROM sys_user_dept ud WHERE ud.dept_id = #{deptId}
+        )
+        <if test="username != null and username != ''">
+            AND (u.username LIKE CONCAT('%', CONCAT(#{username}, '%'))
+            OR u.nickname LIKE CONCAT('%', CONCAT(#{username}, '%')))
+        </if>
+        ) t
+        WHERE t.rank_num &lt;= 100
+        ORDER BY t.username
+    </select>
+
+</mapper>

@@ -1,0 +1,2 @@
+com.lingan.ucp.framework.job.config.OsPowerJobAutoConfiguration
+com.lingan.ucp.framework.job.config.OsAsyncAutoConfiguration

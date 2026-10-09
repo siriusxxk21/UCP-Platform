@@ -1,0 +1,258 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lingan.ucp.nocode.runtime.dal.mapper.TaskEfficiencyMapper">
+    <!-- 与任务管理一致：平台管理者或整组创建人。节点执行人、表单成员不因此获得统计范围。 -->
+    <sql id="scope">
+        WITH roots AS (
+            SELECT r.* FROM public.nocode_task_instance r
+            WHERE r.deleted=0 AND r.id=r.root_id AND r.parent_id IS NULL
+              AND (#{admin} OR r.creator=CAST(#{actor} AS varchar))
+            <if test="q.templateId != null">AND r.template_id=#{q.templateId}</if>
+            <if test="q.rootTaskId != null">AND r.id=#{q.rootTaskId}</if>
+        ), nodes AS (
+            SELECT t.* FROM public.nocode_task_instance t JOIN roots r ON r.id=t.root_id WHERE t.deleted=0
+        ), leaf_nodes AS (
+            SELECT n.* FROM nodes n WHERE NOT EXISTS (SELECT 1 FROM nodes child WHERE child.parent_id=n.id)
+        ), employee_leaf_nodes AS (
+            <!-- 员工负荷按本人叶节点；整组进度继续使用完整 leaf_nodes，不能随员工筛选改变分母。 -->
+            SELECT n.* FROM leaf_nodes n WHERE TRUE
+            <if test="q.employeeId != null">AND n.assignee_id=#{q.employeeId}</if>
+        )
+    </sql>
+
+    <!-- 数据库内归并，不因分页/日期筛选截断去重历史；删除按共享dataset冲减，审批需正式通过。 -->
+    <sql id="work">
+        <include refid="scope"/>, bindings AS (
+            SELECT b.*, b.config_json::jsonb-&gt;'workRule' AS rule,
+                (b.config_json::jsonb-&gt;'workRule'-&gt;&gt;'minutes')::numeric
+                    +coalesce((b.config_json::jsonb-&gt;'workRule'-&gt;&gt;'adjustmentMinutes')::numeric,0) AS unit_minutes
+            FROM public.nocode_task_entry_binding b JOIN nodes n ON n.id=b.task_id
+            WHERE b.deleted=0 AND b.config_json::jsonb-&gt;'workRule'-&gt;&gt;'mode' IS NOT NULL
+        ), raw_facts AS (
+            SELECT f.id,f.task_id,f.entry_key,f.dataset_id,f.creator,f.create_time,
+                b.config_json::jsonb-&gt;&gt;'name' AS entry_name,
+                coalesce(f.work_rule_json::jsonb,b.rule) AS rule,
+                (coalesce(f.work_rule_json::jsonb,b.rule)-&gt;&gt;'minutes')::numeric
+                    +coalesce((coalesce(f.work_rule_json::jsonb,b.rule)-&gt;&gt;'adjustmentMinutes')::numeric,0) AS unit_minutes,
+                f.snapshot_json::jsonb-&gt;'record'-&gt;'values' AS values,
+                CASE WHEN f.business_json::jsonb-&gt;&gt;'requestId' IS NULL
+                    THEN f.business_json::jsonb-&gt;&gt;'recordId' ELSE approved.record_id END AS record_id
+            FROM public.nocode_task_entry_record f
+            JOIN bindings b ON b.task_id=f.task_id AND b.entry_key=f.entry_key AND b.dataset_id=f.dataset_id
+            LEFT JOIN public.nocode_handling_request approved
+                ON approved.id::text=f.business_json::jsonb-&gt;&gt;'requestId' AND approved.deleted=0
+                AND approved.status='APPROVED' AND approved.creator=f.creator
+                AND approved.application_id::text=f.business_json::jsonb-&gt;'resource'-&gt;&gt;'applicationId'
+                AND approved.application_version::text=f.business_json::jsonb-&gt;'resource'-&gt;&gt;'applicationVersion'
+                AND approved.object_id::text=f.business_json::jsonb-&gt;'object'-&gt;&gt;'objectId'
+            WHERE f.deleted=0 AND f.superseded_by IS NULL AND f.operation IN ('CREATED','UPDATED')
+                AND f.snapshot_json IS NOT NULL AND f.creator ~ '^[0-9]+$'
+            <if test="q.employeeId != null">AND f.creator=CAST(#{q.employeeId} AS varchar)</if>
+        ), valued AS (
+            SELECT f.*,
+                CASE f.rule-&gt;&gt;'mode'
+                    WHEN 'RECORD_ONCE' THEN 1
+                    WHEN 'QUANTITY' THEN CASE WHEN (f.values-&gt;&gt;(f.rule-&gt;&gt;'quantityFieldId')) ~ '^[+-]?([0-9]+([.][0-9]*)?|[.][0-9]+)([eE][+-]?[0-9]+)?$'
+                        THEN greatest((f.values-&gt;&gt;(f.rule-&gt;&gt;'quantityFieldId'))::numeric,0) ELSE 0 END
+                    WHEN 'CONDITION' THEN CASE
+                        WHEN jsonb_typeof(f.values-&gt;(f.rule-&gt;&gt;'conditionFieldId'))='number'
+                            OR jsonb_typeof(f.rule-&gt;'conditionValue')='number' THEN CASE
+                                WHEN (f.values-&gt;&gt;(f.rule-&gt;&gt;'conditionFieldId')) ~ '^[+-]?([0-9]+([.][0-9]*)?|[.][0-9]+)([eE][+-]?[0-9]+)?$'
+                                    AND (f.rule-&gt;&gt;'conditionValue') ~ '^[+-]?([0-9]+([.][0-9]*)?|[.][0-9]+)([eE][+-]?[0-9]+)?$'
+                                    THEN CASE WHEN (f.values-&gt;&gt;(f.rule-&gt;&gt;'conditionFieldId'))::numeric=(f.rule-&gt;&gt;'conditionValue')::numeric
+                                        THEN 1 ELSE 0 END ELSE 0 END
+                        WHEN f.values-&gt;&gt;(f.rule-&gt;&gt;'conditionFieldId')=f.rule-&gt;&gt;'conditionValue' THEN 1 ELSE 0 END
+                    ELSE 0 END AS measured_quantity
+            FROM raw_facts f WHERE f.record_id IS NOT NULL
+                AND NOT EXISTS (
+                    SELECT 1 FROM public.nocode_task_entry_record removed
+                    WHERE removed.dataset_id=f.dataset_id AND removed.deleted=0 AND removed.superseded_by IS NULL
+                        AND removed.operation='DELETED' AND removed.business_json::jsonb-&gt;&gt;'recordId'=f.record_id
+                )
+        ), ordered_work AS (
+            SELECT v.*,
+                lag(measured_quantity,1,0::numeric) OVER identity_order AS previous_quantity,
+                min(measured_quantity) OVER (PARTITION BY task_id,entry_key,creator,record_id
+                    ORDER BY create_time,id ROWS BETWEEN CURRENT ROW AND UNBOUNDED FOLLOWING) AS remaining_quantity
+            <!-- 零单价数量段保留数量基线；当前停计也不能抹除历史已经计入的工时。 -->
+            FROM valued v WHERE unit_minutes&gt;0 OR (unit_minutes=0 AND rule-&gt;&gt;'mode'='QUANTITY')
+            WINDOW identity_order AS (PARTITION BY task_id,entry_key,creator,record_id ORDER BY create_time,id)
+        ), segments AS (
+            <!-- 正增量形成计价段；未来减少从最新段冲减，保留每段原单价。 -->
+            SELECT w.*,greatest(least(measured_quantity,remaining_quantity)-previous_quantity,0) AS segment_quantity
+            FROM ordered_work w
+        ), measured AS (
+            SELECT task_id,entry_key,max(entry_name) AS entry_name,creator::bigint AS employee_id,record_id,
+                max(rule-&gt;&gt;'mode') AS rule_mode,
+                CASE WHEN max(rule-&gt;&gt;'mode')='QUANTITY' THEN
+                    CASE WHEN min(unit_minutes) FILTER(WHERE segment_quantity&gt;0 AND unit_minutes&gt;0)=max(unit_minutes) FILTER(WHERE segment_quantity&gt;0 AND unit_minutes&gt;0)
+                        THEN min(unit_minutes) FILTER(WHERE segment_quantity&gt;0 AND unit_minutes&gt;0) ELSE NULL END
+                    ELSE (array_agg(unit_minutes ORDER BY create_time,id) FILTER(WHERE measured_quantity&gt;0))[1] END AS unit_minutes,
+                CASE WHEN max(rule-&gt;&gt;'mode')='QUANTITY' THEN sum(segment_quantity) FILTER(WHERE unit_minutes&gt;0)
+                    ELSE max(measured_quantity) END AS quantity,
+                CASE WHEN max(rule-&gt;&gt;'mode')='QUANTITY' THEN sum(segment_quantity*unit_minutes)
+                    ELSE (array_agg(unit_minutes ORDER BY create_time,id) FILTER(WHERE measured_quantity&gt;0))[1] END AS standard_minutes,
+                min(create_time) FILTER(WHERE measured_quantity&gt;0 AND unit_minutes&gt;0) AS first_counted_at,
+                max(create_time) AS last_handled_at
+            FROM segments GROUP BY task_id,entry_key,creator,record_id
+        ), period_work AS (
+            SELECT m.*,n.root_id FROM measured m JOIN nodes n ON n.id=m.task_id
+            WHERE m.standard_minutes&gt;0 AND m.first_counted_at&gt;=CAST(#{q.from} AS date)
+                AND m.first_counted_at&lt;CAST(#{q.to} AS date)+INTERVAL '1 day'
+        ), node_counts AS (
+            SELECT n.assignee_id AS employee_id,
+                count(*) FILTER(WHERE n.status='COMPLETED' AND n.actual_end&gt;=CAST(#{q.from} AS date)
+                    AND n.actual_end&lt;CAST(#{q.to} AS date)+INTERVAL '1 day') AS completed_node_count,
+                count(*) FILTER(WHERE n.status IN ('PENDING','RUNNING','PAUSED','PENDING_ACCEPTANCE')) AS active_node_count,
+                count(*) FILTER(WHERE n.status IN ('PENDING','RUNNING','PAUSED','PENDING_ACCEPTANCE') AND n.expected_end&lt;localtimestamp) AS overdue_node_count
+            FROM employee_leaf_nodes n GROUP BY n.assignee_id
+        )
+    </sql>
+
+    <select id="metrics" resultType="com.lingan.ucp.nocode.api.TaskEfficiency$Metrics">
+        <include refid="work"/>
+        SELECT coalesce((SELECT sum(standard_minutes) FROM period_work),0) AS standard_minutes,
+            (SELECT count(*) FROM period_work) AS record_count,
+            (SELECT count(DISTINCT employee_id) FROM period_work) AS employee_count,
+            coalesce((SELECT sum(completed_node_count) FROM node_counts),0)::bigint AS completed_node_count,
+            coalesce((SELECT sum(active_node_count) FROM node_counts),0)::bigint AS active_node_count,
+            coalesce((SELECT sum(overdue_node_count) FROM node_counts),0)::bigint AS overdue_node_count
+    </select>
+    <select id="trend" resultType="com.lingan.ucp.nocode.api.TaskEfficiency$Trend">
+        <include refid="work"/>
+        SELECT first_counted_at::date AS date,sum(standard_minutes) AS standard_minutes,count(*) AS record_count
+        FROM period_work GROUP BY first_counted_at::date ORDER BY date
+    </select>
+    <select id="distribution" resultType="com.lingan.ucp.nocode.api.TaskEfficiency$Distribution">
+        <include refid="work"/>
+        SELECT w.employee_id,coalesce(u.nickname,'员工 ' || w.employee_id) AS employee_name,
+            sum(w.standard_minutes) AS standard_minutes,count(*) AS record_count
+        FROM period_work w LEFT JOIN public.system_users u ON u.id=w.employee_id AND u.deleted=0
+        GROUP BY w.employee_id,u.nickname ORDER BY standard_minutes DESC,w.employee_id LIMIT 10
+    </select>
+
+    <sql id="employees">
+        <include refid="work"/>, work_counts AS (
+            SELECT employee_id,sum(standard_minutes) AS standard_minutes,count(*) AS record_count,
+                count(DISTINCT root_id) AS participated_task_count FROM period_work GROUP BY employee_id
+        ), employee_rows AS (
+            SELECT coalesce(w.employee_id,n.employee_id) AS employee_id,
+                coalesce(u.nickname,'员工 ' || coalesce(w.employee_id,n.employee_id)) AS employee_name,
+                coalesce(w.standard_minutes,0) AS standard_minutes,coalesce(w.record_count,0) AS record_count,
+                coalesce(w.participated_task_count,0) AS participated_task_count,
+                coalesce(n.completed_node_count,0) AS completed_node_count,
+                coalesce(n.active_node_count,0) AS active_node_count,coalesce(n.overdue_node_count,0) AS overdue_node_count
+            FROM work_counts w FULL JOIN node_counts n ON n.employee_id=w.employee_id
+            LEFT JOIN public.system_users u ON u.id=coalesce(w.employee_id,n.employee_id) AND u.deleted=0
+            WHERE coalesce(w.employee_id,n.employee_id) IS NOT NULL
+                AND (coalesce(w.record_count,0)&gt;0 OR coalesce(n.completed_node_count,0)&gt;0 OR coalesce(n.active_node_count,0)&gt;0)
+        )
+    </sql>
+    <sql id="employeeSearch">
+        <if test="q.search != null">WHERE employee_name ILIKE '%' || #{q.search} || '%'</if>
+    </sql>
+    <sql id="sort">
+        ORDER BY
+        <choose>
+            <when test="q.sortBy == 'recordCount'">record_count</when>
+            <when test="q.sortBy == 'completedNodeCount'">completed_node_count</when>
+            <when test="q.sortBy == 'overdueNodeCount'">overdue_node_count</when>
+            <otherwise>standard_minutes</otherwise>
+        </choose>
+        <choose><when test="q.descending">DESC</when><otherwise>ASC</otherwise></choose>
+    </sql>
+    <sql id="page">LIMIT #{q.pageSize} OFFSET (#{q.pageNo}-1)*#{q.pageSize}</sql>
+    <select id="employees" resultType="com.lingan.ucp.nocode.api.TaskEfficiency$Employee">
+        <include refid="employees"/> SELECT * FROM employee_rows <include refid="employeeSearch"/>
+        <include refid="sort"/>,employee_id <include refid="page"/>
+    </select>
+    <select id="employeeCount" resultType="long">
+        <include refid="employees"/> SELECT count(*) FROM employee_rows <include refid="employeeSearch"/>
+    </select>
+
+    <sql id="tasks">
+        <include refid="work"/>, root_work AS (
+            SELECT root_id,sum(standard_minutes) AS standard_minutes,count(*) AS record_count,
+                count(DISTINCT employee_id) AS employee_count FROM period_work GROUP BY root_id
+        ), root_nodes AS (
+            SELECT n.root_id,count(*) AS total_node_count,
+                count(*) FILTER(WHERE n.status='COMPLETED') AS completed_node_count,
+                count(*) FILTER(WHERE n.status='CANCELLED') AS cancelled_node_count,
+                count(*) FILTER(WHERE n.status IN ('PENDING','RUNNING','PAUSED','PENDING_ACCEPTANCE') AND n.expected_end&lt;localtimestamp) AS overdue_node_count
+            FROM leaf_nodes n GROUP BY n.root_id
+        ), task_rows AS (
+            SELECT r.id AS root_task_id,r.title,r.template_id,coalesce(v.name,t.name) AS template_name,
+                r.template_version,r.status,r.assignee_id,
+                CASE WHEN r.assignee_id IS NULL THEN NULL ELSE coalesce(u.nickname,'员工 ' || r.assignee_id) END AS assignee_name,
+                (r.config_json::jsonb-&gt;&gt;'effectiveWorkMinutes')::integer AS reference_minutes,
+                coalesce(w.standard_minutes,0) AS standard_minutes,coalesce(w.record_count,0) AS record_count,
+                coalesce(w.employee_count,0) AS employee_count,coalesce(n.completed_node_count,0) AS completed_node_count,
+                coalesce(n.total_node_count,0) AS total_node_count,coalesce(n.cancelled_node_count,0) AS cancelled_node_count,
+                coalesce(n.overdue_node_count,0) AS overdue_node_count,
+                r.expected_end,r.actual_start,r.actual_end,
+                CASE WHEN r.status='COMPLETED' AND r.actual_start IS NOT NULL AND r.actual_end IS NOT NULL
+                    THEN greatest(extract(epoch FROM r.actual_end-r.actual_start)/60,0) ELSE NULL END AS elapsed_minutes
+            FROM roots r LEFT JOIN root_work w ON w.root_id=r.id LEFT JOIN root_nodes n ON n.root_id=r.id
+            LEFT JOIN public.nocode_task_template_version v ON v.template_id=r.template_id AND v.version_no=r.template_version AND v.deleted=0
+            LEFT JOIN public.nocode_task_template t ON t.id=r.template_id AND t.deleted=0
+            LEFT JOIN public.system_users u ON u.id=r.assignee_id AND u.deleted=0
+            WHERE (w.root_id IS NOT NULL OR (r.create_time&lt;CAST(#{q.to} AS date)+INTERVAL '1 day'
+                AND (r.actual_end IS NULL OR r.actual_end&gt;=CAST(#{q.from} AS date))))
+            <if test="q.employeeId != null">AND (w.root_id IS NOT NULL OR EXISTS (
+                SELECT 1 FROM employee_leaf_nodes own_node WHERE own_node.root_id=r.id))</if>
+        )
+    </sql>
+    <sql id="taskSearch"><if test="q.search != null">WHERE title ILIKE '%' || #{q.search} || '%'</if></sql>
+    <select id="tasks" resultType="com.lingan.ucp.nocode.api.TaskEfficiency$Task">
+        <include refid="tasks"/> SELECT * FROM task_rows <include refid="taskSearch"/>
+        <include refid="sort"/>,root_task_id <include refid="page"/>
+    </select>
+    <select id="taskCount" resultType="long">
+        <include refid="tasks"/> SELECT count(*) FROM task_rows <include refid="taskSearch"/>
+    </select>
+
+    <sql id="recordSearch">
+        <if test="q.search != null">WHERE (n.title ILIKE '%' || #{q.search} || '%' OR w.entry_name ILIKE '%' || #{q.search} || '%'
+            OR r.title ILIKE '%' || #{q.search} || '%' OR w.record_id ILIKE '%' || #{q.search} || '%'
+            OR coalesce(u.nickname,'员工 ' || w.employee_id) ILIKE '%' || #{q.search} || '%')</if>
+    </sql>
+    <select id="records" resultType="com.lingan.ucp.nocode.api.TaskEfficiency$Record">
+        <include refid="work"/>
+        SELECT w.task_id,n.title AS task_title,n.root_id AS root_task_id,r.title AS root_title,
+            w.entry_key,w.entry_name,w.employee_id,coalesce(u.nickname,'员工 ' || w.employee_id) AS employee_name,
+            w.record_id,w.rule_mode,w.unit_minutes,w.quantity,w.standard_minutes,
+            w.first_counted_at,w.last_handled_at
+        FROM period_work w JOIN nodes n ON n.id=w.task_id JOIN roots r ON r.id=n.root_id
+        LEFT JOIN public.system_users u ON u.id=w.employee_id AND u.deleted=0
+        <include refid="recordSearch"/>
+        ORDER BY w.first_counted_at DESC,w.task_id,w.entry_key,w.employee_id,w.record_id <include refid="page"/>
+    </select>
+    <select id="recordCount" resultType="long">
+        <include refid="work"/> SELECT count(*) FROM period_work w JOIN nodes n ON n.id=w.task_id
+        JOIN roots r ON r.id=n.root_id
+        LEFT JOIN public.system_users u ON u.id=w.employee_id AND u.deleted=0
+        <include refid="recordSearch"/>
+    </select>
+
+    <select id="employeeOptions" resultType="com.lingan.ucp.nocode.api.TaskEfficiency$EmployeeOption">
+        <include refid="scope"/>, employee_ids AS (
+            SELECT assignee_id AS id FROM nodes WHERE assignee_id IS NOT NULL
+            UNION SELECT f.creator::bigint FROM public.nocode_task_entry_record f JOIN nodes n ON n.id=f.task_id
+                WHERE f.deleted=0 AND f.creator ~ '^[0-9]+$'
+        )
+        SELECT e.id,coalesce(u.nickname,'员工 ' || e.id) AS name
+        FROM employee_ids e LEFT JOIN public.system_users u ON u.id=e.id AND u.deleted=0
+        <if test="q.search != null">WHERE coalesce(u.nickname,'员工 ' || e.id) ILIKE '%' || #{q.search} || '%'</if>
+        ORDER BY name,e.id LIMIT 200
+    </select>
+    <select id="templateOptions" resultType="com.lingan.ucp.nocode.api.TaskEfficiency$TemplateOption">
+        <include refid="scope"/>
+        SELECT r.template_id AS id,coalesce(t.name,max(v.name),'历史模板') AS name
+        FROM roots r LEFT JOIN public.nocode_task_template t ON t.id=r.template_id AND t.deleted=0
+        LEFT JOIN public.nocode_task_template_version v ON v.template_id=r.template_id AND v.version_no=r.template_version AND v.deleted=0
+        WHERE r.template_id IS NOT NULL
+        GROUP BY r.template_id,t.name
+        <if test="q.search != null">HAVING coalesce(t.name,max(v.name),'历史模板') ILIKE '%' || #{q.search} || '%'</if>
+        ORDER BY name,r.template_id LIMIT 200
+    </select>
+</mapper>

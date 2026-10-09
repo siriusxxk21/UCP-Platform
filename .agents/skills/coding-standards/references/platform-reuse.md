@@ -12,14 +12,14 @@
 
 | 能力 | 已有入口 | 无代码职责 |
 |---|---|---|
-| 持久化、分页、事务 | os-spring-boot-starter-mybatis、BaseMapperX、PageResult、现有事务管理器 | Mapper/DO 与领域校验；不自建连接和分页设施 |
+| 持久化、分页、事务 | ucp-spring-boot-starter-mybatis、BaseMapperX、PageResult、现有事务管理器 | Mapper/DO 与领域校验；不自建连接和分页设施 |
 | 当前数据库元数据 | MyBatis starter 的 DatabaseMetadataReader / PostgreSQL Mapper | 通过统一契约读取真实结构，不在对象 Mapper 混放目录 SQL |
 | 登录、身份、组织、权限 | 当前 SecurityFrameworkUtils、PermissionCommonApi；system 的 AdminUserApi、DeptApi、PermissionApi | 注册业务权限码，按当前身份校验；不新增账号体系 |
 | 响应、异常 | Result、ServiceException、现有全局异常处理器 | 领域错误码和清晰提示 |
 | 前端请求和页面 | 现有认证请求客户端、路由、主题，os-table-page / os-modal-form 等公共组件 | 业务表单、字段编辑和设计器；先评估公共组件能力 |
-| 文件 | os-module-infra 的 FileApi | 对象/记录附件关联和业务约束 |
-| 消息 | system 的 NotifyMessageSendApi / SmsSendApi / MailSendApi；os-module-msg | 业务消息规则和模板引用，按当前通道与接口接入 |
-| 流程 | os-module-bpm 的 BpmProcessDefinitionApi / BpmProcessInstanceApi / BpmProcessTaskApi | 对象、页面与流程的关联扩展；不再建流程执行引擎 |
+| 文件 | ucp-module-infra 的 FileApi | 对象/记录附件关联和业务约束 |
+| 消息 | system 的 NotifyMessageSendApi / SmsSendApi / MailSendApi；ucp-module-msg | 业务消息规则和模板引用，按当前通道与接口接入 |
+| 流程 | ucp-module-bpm 的 BpmProcessDefinitionApi / BpmProcessInstanceApi / BpmProcessTaskApi | 对象、页面与流程的关联扩展；不再建流程执行引擎 |
 | 通用操作日志 | system 的 OperateLogApi 和现有日志基础设施 | 通用操作日志复用底座；nocode_operation_log 仅保留对象修订的事务性领域留痕，不作为另一套通用日志中心 |
 | 字典、配置、缓存、调度 | DictDataApi、ConfigApi、已有 Redis / job starter | 先核实适用性；应用专属版本语义有差异时只补必要领域配置 |
 
@@ -30,15 +30,15 @@
 ## 命名
 
 ```text
-os-server/
-  os-nocode/                  POM 聚合模块
-    os-nocode-api/
-    os-nocode-metadata/
-    os-nocode-web/
-    os-nocode-tools/
+ucp-server/
+  ucp-nocode/                  POM 聚合模块
+    ucp-nocode-api/
+    ucp-nocode-metadata/
+    ucp-nocode-web/
+    ucp-nocode-tools/
 ```
 
-Maven artifactId 与目录同名。Java 包仍为 `com.richuang.os.nocode`；API `/nocode/**`、权限 `nocode:*`、前端 `src/views/nocode` 保持领域含义，不用 Maven 名称改写 URL。
+Maven artifactId 与目录同名。Java 包仍为 `com.lingan.ucp.nocode`；API `/nocode/**`、权限 `nocode:*`、前端 `src/views/nocode` 保持领域含义，不用 Maven 名称改写 URL。
 
 | 原名称 | 当前名称 |
 |---|---|

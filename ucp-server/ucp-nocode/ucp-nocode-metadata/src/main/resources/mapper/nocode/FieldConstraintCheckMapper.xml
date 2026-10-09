@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lingan.ucp.nocode.metadata.dal.mapper.FieldConstraintCheckMapper">
+    <resultMap id="conflict" type="com.lingan.ucp.nocode.metadata.dal.mapper.FieldConstraintCheckMapper$Conflict">
+        <constructor>
+            <arg column="total" javaType="_long"/>
+            <arg column="record_id" javaType="java.lang.String"/>
+        </constructor>
+    </resultMap>
+    <sql id="identifiers">
+        <bind name="_schema" value="@com.lingan.ucp.framework.mybatis.core.metadata.PostgreSqlCommands@identifier(schema)"/>
+        <bind name="_table" value="@com.lingan.ucp.framework.mybatis.core.metadata.PostgreSqlCommands@identifier(table)"/>
+        <bind name="_column" value="@com.lingan.ucp.framework.mybatis.core.metadata.PostgreSqlCommands@identifier(column)"/>
+        <bind name="_key" value="@com.lingan.ucp.framework.mybatis.core.metadata.PostgreSqlCommands@identifier(keyColumn)"/>
+    </sql>
+    <sql id="source">
+        SELECT count(*) OVER () AS total, ${_key}::text AS record_id
+        FROM ${_schema}.${_table}
+        WHERE ${_column} IS NOT NULL AND
+    </sql>
+    <!-- 窗口计数先于 LIMIT，保留完整冲突总数；不附加 deleted 条件或读取原值。 -->
+    <select id="belowMinimum" resultMap="conflict" useCache="false" flushCache="true">
+        <include refid="identifiers"/>
+        <include refid="source"/>
+        ${_column} &lt; CAST(#{value} AS numeric)
+        ORDER BY ${_key} LIMIT 10
+    </select>
+    <select id="aboveMaximum" resultMap="conflict" useCache="false" flushCache="true">
+        <include refid="identifiers"/>
+        <include refid="source"/>
+        ${_column} &gt; CAST(#{value} AS numeric)
+        ORDER BY ${_key} LIMIT 10
+    </select>
+    <select id="patternMismatch" resultMap="conflict" useCache="false" flushCache="true">
+        <include refid="identifiers"/>
+        <include refid="source"/>
+        ${_column} !~ #{value}
+        ORDER BY ${_key} LIMIT 10
+    </select>
+</mapper>

@@ -1,10 +1,10 @@
-# 数据库迁移与工具（os-server/sql）
+# 数据库迁移与工具（ucp-server/sql）
 
 配套主技能见 [../SKILL.md](../SKILL.md)。此文件包含迁移与工具执行规范；工程路径以仓库根目录为基准。
 
 ## 目录与命名
 
-- 唯一手写 SQL 目录为 `os-server/sql/`；PostgreSQL 增量放 `sql/postgresql/migrations/`。
+- 唯一手写 SQL 目录为 `ucp-server/sql/`；PostgreSQL 增量放 `sql/postgresql/migrations/`。
 - 命名 `VNNN__description.sql`：版本三位起连续递增，描述小写蛇形、字母开头（正则 `^V([0-9]{3,})__[a-z][a-z0-9_]*\.sql$`）；所有模块共用连续编号，从 V001 起（取号前以目录实际最大编号为准）。
 - 历史表 `public.nocode_schema_history`；不启用 Flyway clean，不自动 repair，不随服务启动自动迁移。
 - 迁移文件头注释建议写明：用途、前置条件、验证方式。
@@ -21,15 +21,15 @@
 - 新生成业务主表/内部明细/关联表：`biz_`（关联表 `biz_r_<对象ID>_<关系ID>`）；自动对象编码 ≤59 字符。
 - 底座（system/infra/bpm/Flowable）与纳管既有表保留原物理名；旧前缀已登记表兼容保留，新建不得使用。
 
-## 命令（均在 `os-server` 根目录执行）
+## 命令（均在 `ucp-server` 根目录执行）
 
 ```bash
 node sql/check-migrations.mjs        # 编号连续、命名、UTF-8、非空、校验和（SQL 交付前必跑）
 node --test sql/check-migrations.test.mjs   # 验证检查器自身
-./os-nocode/run.ps1 info -Build      # 只读：列出版本与待执行状态（首次/工具变更时 -Build）
-./os-nocode/run.ps1 migrate          # 执行待应用迁移（仅在数据库升级被授权时）
-./os-nocode/run.ps1 verify           # 只读核对目标库版本
-./os-nocode/run.ps1 dump             # 更新 public 快照 sql/full/public.sql（仅需更新快照时）
+./ucp-nocode/run.ps1 info -Build      # 只读：列出版本与待执行状态（首次/工具变更时 -Build）
+./ucp-nocode/run.ps1 migrate          # 执行待应用迁移（仅在数据库升级被授权时）
+./ucp-nocode/run.ps1 verify           # 只读核对目标库版本
+./ucp-nocode/run.ps1 dump             # 更新 public 快照 sql/full/public.sql（仅需更新快照时）
 ```
 
 - 禁止使用旧构建产物执行新迁移；工具构建的 Maven clean 只清理编译输出，不是数据库 clean。

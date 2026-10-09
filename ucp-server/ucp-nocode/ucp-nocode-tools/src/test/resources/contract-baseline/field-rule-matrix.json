@@ -1,0 +1,66 @@
+{
+  "说明": "字段抽屉「值来源」能力矩阵的期望表（设计稿第 2 章，按 15.4 明细字段同样适用）。前端 ucp-front/src/nocode/field-rules.test.ts 与后端 FieldRuleMatrixTest 读同一份。type 为 FieldTypeEnum 编码；relation 为该字段所在关系的 RelationTypeEnum 编码（没有关系为 null）；block 为抽屉显示哪一块；modes 为可用档位，顺序固定。",
+  "blocks": {
+    "OPTIONS": "选项▾（不出现默认值块）",
+    "DEFAULT": "默认值▾",
+    "NONE": "整块不显示"
+  },
+  "modes": {
+    "CUSTOM": "自定义（选项类：局部选项或公共字典；其它：自定义默认值，留空即没有默认值）",
+    "OBJECT_FIELD_OPTIONS": "关联其它表单数据·挑取值（selection.kind=OBJECT_FIELD_OPTIONS）",
+    "REFERENCE_LABEL": "关联其它表单数据·挑对象·显示名字段（rules.reference.labelFieldId）",
+    "REFERENCE_FILTER": "关联其它表单数据·挑对象·引用筛选（rules.reference.filter）",
+    "LINKAGE": "数据联动（rules.linkage；选项类与关系字段上是叠加在候选来源上的可选项）",
+    "FORMULA": "公式编辑（rules.defaultFormula）"
+  },
+  "cases": [
+    { "type": "TEXT", "relation": null, "block": "DEFAULT", "modes": ["CUSTOM", "LINKAGE", "FORMULA"] },
+    { "type": "TEXTAREA", "relation": null, "block": "DEFAULT", "modes": ["CUSTOM", "LINKAGE", "FORMULA"] },
+    { "type": "URL", "relation": null, "block": "DEFAULT", "modes": ["CUSTOM", "LINKAGE", "FORMULA"] },
+    { "type": "INTEGER", "relation": null, "block": "DEFAULT", "modes": ["CUSTOM", "LINKAGE", "FORMULA"] },
+    { "type": "DECIMAL", "relation": null, "block": "DEFAULT", "modes": ["CUSTOM", "LINKAGE", "FORMULA"] },
+    { "type": "MONEY", "relation": null, "block": "DEFAULT", "modes": ["CUSTOM", "LINKAGE", "FORMULA"] },
+    { "type": "PERCENT", "relation": null, "block": "DEFAULT", "modes": ["CUSTOM", "LINKAGE", "FORMULA"] },
+    { "type": "DATE", "relation": null, "block": "DEFAULT", "modes": ["CUSTOM", "LINKAGE"] },
+    { "type": "DATETIME", "relation": null, "block": "DEFAULT", "modes": ["CUSTOM", "LINKAGE"] },
+    { "type": "TIME", "relation": null, "block": "DEFAULT", "modes": ["CUSTOM", "LINKAGE"] },
+    { "type": "BOOLEAN", "relation": null, "block": "DEFAULT", "modes": ["CUSTOM", "LINKAGE"] },
+    { "type": "USER", "relation": null, "block": "DEFAULT", "modes": ["CUSTOM", "LINKAGE"] },
+    { "type": "DEPARTMENT", "relation": null, "block": "DEFAULT", "modes": ["CUSTOM", "LINKAGE"] },
+    { "type": "ORGANIZATION", "relation": null, "block": "DEFAULT", "modes": ["CUSTOM", "LINKAGE"] },
+    { "type": "POST", "relation": null, "block": "DEFAULT", "modes": ["CUSTOM", "LINKAGE"] },
+    { "type": "USER_GROUP", "relation": null, "block": "DEFAULT", "modes": ["CUSTOM", "LINKAGE"] },
+    { "type": "RICH_TEXT", "relation": null, "block": "DEFAULT", "modes": ["CUSTOM", "LINKAGE"] },
+    { "type": "IMAGE", "relation": null, "block": "DEFAULT", "modes": ["CUSTOM"] },
+    { "type": "ATTACHMENT", "relation": null, "block": "DEFAULT", "modes": ["CUSTOM"] },
+    { "type": "SELECT", "relation": null, "block": "OPTIONS", "modes": ["CUSTOM", "OBJECT_FIELD_OPTIONS", "LINKAGE"] },
+    { "type": "MULTI_SELECT", "relation": null, "block": "OPTIONS", "modes": ["CUSTOM", "OBJECT_FIELD_OPTIONS", "LINKAGE"] },
+    { "type": "REGION", "relation": null, "block": "OPTIONS", "modes": ["CUSTOM", "LINKAGE"] },
+    { "type": "CASCADE", "relation": null, "block": "OPTIONS", "modes": ["CUSTOM", "LINKAGE"] },
+    { "type": "AUTO_NUMBER", "relation": null, "block": "NONE", "modes": [] },
+    { "type": "FORMULA", "relation": null, "block": "NONE", "modes": [] },
+    { "type": "SUMMARY", "relation": null, "block": "NONE", "modes": [] },
+    { "type": "UUID", "relation": null, "block": "NONE", "modes": [] },
+    { "type": "REFERENCE", "relation": null, "block": "NONE", "modes": [] },
+    {
+      "type": "REFERENCE",
+      "relation": "REFERENCE",
+      "block": "OPTIONS",
+      "modes": ["REFERENCE_LABEL", "REFERENCE_FILTER", "LINKAGE"]
+    },
+    {
+      "type": "REFERENCE",
+      "relation": "ONE_TO_ONE",
+      "block": "OPTIONS",
+      "modes": ["REFERENCE_LABEL", "REFERENCE_FILTER", "LINKAGE"]
+    },
+    {
+      "type": "INTEGER",
+      "relation": "REFERENCE",
+      "block": "OPTIONS",
+      "modes": ["REFERENCE_LABEL", "REFERENCE_FILTER", "LINKAGE"]
+    },
+    { "type": "REFERENCE", "relation": "MASTER_DETAIL", "block": "OPTIONS", "modes": ["REFERENCE_LABEL"] },
+    { "type": "MULTI_SELECT", "relation": "MANY_TO_MANY", "block": "NONE", "modes": [] }
+  ]
+}

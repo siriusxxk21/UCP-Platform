@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!-- 对象对应用的授权；过滤逻辑删除数据并按原方式维护审计字段。 -->
+<mapper namespace="com.lingan.ucp.nocode.application.dal.mapper.ObjectApplicationGrantMapper">
+
+    <select
+            id="find"
+            parameterType="org.apache.ibatis.binding.MapperMethod$ParamMap"
+            resultType="com.lingan.ucp.nocode.application.dal.dataobject.NocodeObjectApplicationGrantDO"
+            useCache="false"
+            flushCache="true">
+        SELECT *
+        FROM public.nocode_object_application_grant
+        WHERE object_id = #{object}
+        AND application_id = #{app}
+        AND deleted = 0
+    </select>
+
+    <select
+            id="forObject"
+            parameterType="_long"
+            resultType="com.lingan.ucp.nocode.application.dal.dataobject.NocodeObjectApplicationGrantDO"
+            useCache="true"
+            flushCache="false">
+        SELECT *
+        FROM public.nocode_object_application_grant
+        WHERE object_id = #{object}
+        AND deleted = 0
+        ORDER BY application_id
+    </select>
+
+    <select
+            id="forApplication"
+            parameterType="_long"
+            resultType="com.lingan.ucp.nocode.application.dal.dataobject.NocodeObjectApplicationGrantDO"
+            useCache="true"
+            flushCache="false">
+        SELECT *
+        FROM public.nocode_object_application_grant
+        WHERE application_id = #{app}
+        AND deleted = 0
+        ORDER BY object_id
+    </select>
+
+    <select
+            id="targets"
+            resultType="com.lingan.ucp.nocode.api.ObjectSharing$Target"
+            useCache="true"
+            flushCache="false">
+        SELECT id::text AS id, app_name AS name
+        FROM public.nocode_application
+        WHERE deleted = 0
+        ORDER BY app_name, id
+    </select>
+
+    <insert
+            id="save"
+            parameterType="org.apache.ibatis.binding.MapperMethod$ParamMap"
+            flushCache="true">
+        INSERT INTO public.nocode_object_application_grant(object_id, application_id, lock_version, grant_json, reason,
+            creator, updater)
+        VALUES (#{object}, #{app}, 1, CAST(#{json} AS jsonb), #{reason}, #{actor}, #{actor})
+        ON CONFLICT(object_id, application_id)
+        DO UPDATE
+        SET grant_json = EXCLUDED.grant_json, reason = EXCLUDED.reason, lock_version = nocode_object_application_grant.lock_version + 1,
+        updater = #{actor}, update_time = clock_timestamp()
+    </insert>
+
+    <insert
+            id="audit"
+            parameterType="org.apache.ibatis.binding.MapperMethod$ParamMap"
+            flushCache="true">
+        INSERT INTO public.nocode_object_application_grant_log(object_id, application_id, lock_version, grant_json,
+            reason, creator, updater)
+        SELECT object_id, application_id, lock_version, grant_json, reason, #{actor}, #{actor}
+        FROM public.nocode_object_application_grant
+        WHERE object_id = #{object}
+        AND application_id = #{app}
+        AND deleted = 0
+    </insert>
+
+</mapper>

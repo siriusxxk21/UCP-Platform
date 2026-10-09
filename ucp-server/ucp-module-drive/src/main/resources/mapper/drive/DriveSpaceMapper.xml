@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lingan.ucp.module.drive.dal.mysql.space.DriveSpaceMapper">
+
+    <update id="updateUsedBytes">
+        UPDATE public.drive_space
+        SET used_bytes   = GREATEST(used_bytes + #{delta}, 0),
+            update_time  = CURRENT_TIMESTAMP
+        WHERE id = #{id} AND deleted = 0
+    </update>
+
+</mapper>

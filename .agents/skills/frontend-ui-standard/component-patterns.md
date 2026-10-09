@@ -6,7 +6,7 @@ This document provides the canonical usage patterns for all reusable UI componen
 
 ## OsTablePage — Universal CRUD Table
 
-**Location**: `src/components/os-table-page/OsTablePage.vue`
+**Location**: `src/components/ucp-table-page/OsTablePage.vue`
 **Composable**: `src/composables/useOsTablePage.ts`
 
 ### When to Use
@@ -105,8 +105,8 @@ const {
 
 ```vue
 <script setup lang="ts">
-import OsTablePage from '@/components/os-table-page/OsTablePage.vue'
-import OsModalForm from '@/components/os-modal-form/OsModalForm.vue'
+import OsTablePage from '@/components/ucp-table-page/OsTablePage.vue'
+import OsModalForm from '@/components/ucp-modal-form/OsModalForm.vue'
 import { useOsTablePage } from '@/composables/useOsTablePage'
 import { useOsModalForm } from '@/composables/useOsModalForm'
 import { getXxxList, createXxx, updateXxx, deleteXxx } from '@/api/xxx'
@@ -225,7 +225,7 @@ const {
 
 ## OsModalForm — Universal Form Container
 
-**Location**: `src/components/os-modal-form/OsModalForm.vue`
+**Location**: `src/components/ucp-modal-form/OsModalForm.vue`
 **Composable**: `src/composables/useOsModalForm.ts`
 
 ### When to Use

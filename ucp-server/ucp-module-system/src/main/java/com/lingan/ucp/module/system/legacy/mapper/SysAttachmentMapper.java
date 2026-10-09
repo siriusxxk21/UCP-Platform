@@ -1,0 +1,9 @@
+package com.lingan.ucp.module.system.legacy.mapper;
+
+import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import com.lingan.ucp.module.system.legacy.entity.SysAttachment;
+import org.apache.ibatis.annotations.Mapper;
+
+// @Mapper -- 已废弃（v2.0 统一认证迁移）
+public interface SysAttachmentMapper extends BaseMapper<SysAttachment> {
+}

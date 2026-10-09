@@ -1,0 +1,232 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lingan.ucp.module.drive.dal.mysql.entry.DriveEntryMapper">
+
+    <sql id="Base_Column_List">
+        id, space_id, parent_id, name, type, file_id, size, mime_type, inherit_parent,
+        trash_state, trashed_at, trashed_by, origin_parent_id, managed_biz, lock_version,
+        creator, create_time, updater, update_time, deleted
+    </sql>
+
+    <!-- 以 INSERT 执行并回填主键；不能将 INSERT RETURNING 声明为 SELECT，数据权限查询拦截器不支持它。 -->
+    <insert id="insertManagedFolderIfAbsent" useGeneratedKeys="true" keyProperty="entry.id" keyColumn="id">
+        INSERT INTO public.drive_entry(
+            space_id, parent_id, name, type, size, inherit_parent, trash_state,
+            managed_biz, lock_version, creator, updater
+        )
+        VALUES (
+            #{entry.spaceId}, #{entry.parentId}, #{entry.name}, #{entry.type}, #{entry.size},
+            #{entry.inheritParent}, #{entry.trashState}, #{entry.managedBiz}, #{entry.lockVersion},
+            CAST(#{actor} AS varchar), CAST(#{actor} AS varchar)
+        )
+        ON CONFLICT DO NOTHING
+    </insert>
+
+    <select id="selectListByParent" resultType="com.lingan.ucp.module.drive.dal.dataobject.entry.DriveEntryDO">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM public.drive_entry
+        WHERE space_id = #{spaceId} AND parent_id = #{parentId}
+          AND trash_state = 'NORMAL' AND deleted = 0
+        ORDER BY CASE WHEN type = 'FOLDER' THEN 0 ELSE 1 END, name
+    </select>
+
+    <select id="selectTrashList" resultType="com.lingan.ucp.module.drive.dal.dataobject.entry.DriveEntryDO">
+        SELECT e.id, e.space_id, e.parent_id, e.name, e.type, e.file_id, e.size, e.mime_type, e.inherit_parent,
+               e.trash_state, e.trashed_at, e.trashed_by, e.origin_parent_id, e.lock_version,
+               e.creator, e.create_time, e.updater, e.update_time, e.deleted
+        FROM public.drive_entry e
+        WHERE e.space_id = #{spaceId} AND e.trash_state = 'TRASHED' AND e.deleted = 0
+        <if test="name != null and name != ''">
+            AND e.name LIKE CONCAT('%', #{name}, '%')
+        </if>
+        <!-- 非空间管理者只能看到自己删除的节点 -->
+        <if test="trashedBy != null and trashedBy != ''">
+            AND e.trashed_by = #{trashedBy}
+        </if>
+        <!-- 只列出删除入口节点：父节点也被删除的节点随入口节点一起恢复，不单独列出 -->
+        AND NOT EXISTS (
+            SELECT 1 FROM public.drive_entry p
+            WHERE p.id = e.parent_id AND p.trash_state = 'TRASHED' AND p.deleted = 0
+        )
+        ORDER BY e.trashed_at DESC NULLS LAST, e.id DESC
+    </select>
+
+    <select id="selectPathChain" resultType="com.lingan.ucp.module.drive.dal.dataobject.entry.DriveEntryChainRow">
+        WITH RECURSIVE chain AS (
+            SELECT e.id, e.parent_id, e.inherit_parent, 0 AS depth
+            FROM public.drive_entry e
+            WHERE e.id = #{entryId} AND e.space_id = #{spaceId} AND e.deleted = 0
+            UNION ALL
+            SELECT p.id, p.parent_id, p.inherit_parent, c.depth + 1
+            FROM public.drive_entry p
+                     JOIN chain c ON p.id = c.parent_id
+            WHERE p.space_id = #{spaceId} AND p.deleted = 0
+              AND c.parent_id &lt;&gt; 0 AND c.depth &lt; 100
+        )
+        SELECT id, parent_id, inherit_parent, depth FROM chain ORDER BY depth
+    </select>
+
+    <select id="selectSubtree" resultType="com.lingan.ucp.module.drive.dal.dataobject.entry.DriveEntryDO">
+        WITH RECURSIVE sub AS (
+            SELECT
+            <include refid="Base_Column_List"/>
+            , 0 AS depth
+            FROM public.drive_entry
+            WHERE id = #{rootId} AND space_id = #{spaceId} AND deleted = 0
+            UNION ALL
+            SELECT c.id, c.space_id, c.parent_id, c.name, c.type, c.file_id, c.size, c.mime_type, c.inherit_parent,
+                   c.trash_state, c.trashed_at, c.trashed_by, c.origin_parent_id, c.managed_biz, c.lock_version,
+                   c.creator, c.create_time, c.updater, c.update_time, c.deleted, s.depth + 1
+            FROM public.drive_entry c
+                     JOIN sub s ON c.parent_id = s.id
+            WHERE c.space_id = #{spaceId} AND c.deleted = 0 AND s.depth &lt; 100
+        )
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM sub
+        ORDER BY depth, id
+    </select>
+
+    <select id="selectIsInSubtree" resultType="java.lang.Boolean">
+        WITH RECURSIVE chain AS (
+            SELECT e.id, e.parent_id, 0 AS depth
+            FROM public.drive_entry e
+            WHERE e.id = #{entryId} AND e.deleted = 0
+            UNION ALL
+            SELECT p.id, p.parent_id, c.depth + 1
+            FROM public.drive_entry p
+                     JOIN chain c ON p.id = c.parent_id
+            WHERE p.deleted = 0 AND c.parent_id &lt;&gt; 0 AND c.depth &lt; 100
+        )
+        SELECT COUNT(*) &gt; 0 FROM chain WHERE id = #{ancestorId}
+    </select>
+
+    <select id="selectListByNameLike" resultType="com.lingan.ucp.module.drive.dal.dataobject.entry.DriveEntryDO">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM public.drive_entry
+        WHERE space_id = #{spaceId} AND name LIKE CONCAT('%', #{name}, '%')
+          AND trash_state = 'NORMAL' AND deleted = 0
+        ORDER BY CASE WHEN type = 'FOLDER' THEN 0 ELSE 1 END, name
+        LIMIT #{limit}
+    </select>
+
+    <update id="updateTrashState">
+        UPDATE public.drive_entry
+        SET trash_state = #{trashState},
+            trashed_at  = #{trashedAt},
+            trashed_by  = #{trashedBy},
+            update_time = CURRENT_TIMESTAMP
+        WHERE deleted = 0 AND id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">#{id}</foreach>
+    </update>
+
+    <update id="updateOriginParentId">
+        UPDATE public.drive_entry
+        SET origin_parent_id = #{originParentId},
+            update_time      = CURRENT_TIMESTAMP
+        WHERE id = #{id} AND deleted = 0
+    </update>
+
+    <!-- 业务空间文件夹区：同 selectListByParent，只返回普通节点（受管节点属于附件归档区）。 -->
+    <select id="selectOrdinaryListByParent" resultType="com.lingan.ucp.module.drive.dal.dataobject.entry.DriveEntryDO">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM public.drive_entry
+        WHERE space_id = #{spaceId} AND parent_id = #{parentId}
+          AND trash_state = 'NORMAL' AND deleted = 0
+          AND managed_biz = false
+        ORDER BY CASE WHEN type = 'FOLDER' THEN 0 ELSE 1 END, name
+    </select>
+
+    <!-- 子树内按名称搜索：自 rootId 向下只走正常节点，结果不含根自身。 -->
+    <select id="selectSubtreeByNameLike" resultType="com.lingan.ucp.module.drive.dal.dataobject.entry.DriveEntryDO">
+        WITH RECURSIVE sub AS (
+            SELECT e.id, 0 AS depth
+            FROM public.drive_entry e
+            WHERE e.id = #{rootId} AND e.space_id = #{spaceId} AND e.deleted = 0
+              AND e.trash_state = 'NORMAL'
+            UNION ALL
+            SELECT c.id, s.depth + 1
+            FROM public.drive_entry c
+                     JOIN sub s ON c.parent_id = s.id
+            WHERE c.space_id = #{spaceId} AND c.deleted = 0
+              AND c.trash_state = 'NORMAL' AND s.depth &lt; 100
+        )
+        SELECT e.id, e.space_id, e.parent_id, e.name, e.type, e.file_id, e.size, e.mime_type, e.inherit_parent,
+               e.trash_state, e.trashed_at, e.trashed_by, e.origin_parent_id, e.lock_version,
+               e.creator, e.create_time, e.updater, e.update_time, e.deleted
+        FROM public.drive_entry e
+                 JOIN sub s ON s.id = e.id
+        WHERE s.depth &gt; 0 AND e.name LIKE CONCAT('%', #{name}, '%')
+        ORDER BY CASE WHEN e.type = 'FOLDER' THEN 0 ELSE 1 END, e.name
+        LIMIT #{limit}
+    </select>
+
+    <!-- 子树内的回收站入口节点：下探不看回收站状态；只取某人删除、来源键相符、父节点未被删除的节点。 -->
+    <select id="selectTrashedInSubtree" resultType="com.lingan.ucp.module.drive.dal.dataobject.entry.DriveEntryDO">
+        WITH RECURSIVE sub AS (
+            SELECT e.id, 0 AS depth
+            FROM public.drive_entry e
+            WHERE e.id = #{rootId} AND e.space_id = #{spaceId} AND e.deleted = 0
+            UNION ALL
+            SELECT c.id, s.depth + 1
+            FROM public.drive_entry c
+                     JOIN sub s ON c.parent_id = s.id
+            WHERE c.space_id = #{spaceId} AND c.deleted = 0 AND s.depth &lt; 100
+        )
+        SELECT e.id, e.space_id, e.parent_id, e.name, e.type, e.file_id, e.size, e.mime_type, e.inherit_parent,
+               e.trash_state, e.trashed_at, e.trashed_by, e.origin_parent_id, e.lock_version,
+               e.creator, e.create_time, e.updater, e.update_time, e.deleted
+        FROM public.drive_entry e
+                 JOIN sub s ON s.id = e.id
+                 JOIN public.drive_entry_origin o ON o.entry_id = e.id AND o.deleted = 0
+        WHERE s.depth &gt; 0 AND e.trash_state = 'TRASHED'
+          AND e.trashed_by = #{trashedBy}
+          AND o.origin_key = #{originKey}
+          AND NOT EXISTS (
+              SELECT 1 FROM public.drive_entry p
+              WHERE p.id = e.parent_id AND p.trash_state = 'TRASHED' AND p.deleted = 0
+          )
+        ORDER BY e.trashed_at DESC NULLS LAST, e.id DESC
+    </select>
+
+    <!-- 来源标记只在节点创建时写一次：已有标记的节点不动（含已作废的标记）。 -->
+    <insert id="insertOrigins">
+        INSERT INTO public.drive_entry_origin(entry_id, origin_key, creator, updater)
+        VALUES
+        <foreach collection="ids" item="id" separator=",">
+            (#{id}, #{originKey}, CAST(#{actor} AS varchar), CAST(#{actor} AS varchar))
+        </foreach>
+        ON CONFLICT (entry_id) DO NOTHING
+    </insert>
+
+    <select id="selectOrigins" resultType="com.lingan.ucp.module.drive.dal.dataobject.entry.DriveEntryOriginRow">
+        SELECT o.entry_id, o.origin_key
+        FROM public.drive_entry_origin o
+        WHERE o.deleted = 0 AND o.entry_id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">#{id}</foreach>
+    </select>
+
+    <!-- rootId 自身及其下未进回收站的节点里，来源键不是 originKey 的个数；没有标记的节点也算。 -->
+    <select id="countForeignInSubtree" resultType="long">
+        WITH RECURSIVE sub AS (
+            SELECT e.id, 0 AS depth
+            FROM public.drive_entry e
+            WHERE e.id = #{rootId} AND e.space_id = #{spaceId} AND e.deleted = 0
+              AND e.trash_state = 'NORMAL'
+            UNION ALL
+            SELECT c.id, s.depth + 1
+            FROM public.drive_entry c
+                     JOIN sub s ON c.parent_id = s.id
+            WHERE c.space_id = #{spaceId} AND c.deleted = 0
+              AND c.trash_state = 'NORMAL' AND s.depth &lt; 100
+        )
+        SELECT COUNT(*)
+        FROM sub s
+                 LEFT JOIN public.drive_entry_origin o ON o.entry_id = s.id AND o.deleted = 0
+        WHERE o.origin_key IS DISTINCT FROM #{originKey}
+    </select>
+
+</mapper>

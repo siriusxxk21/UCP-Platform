@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lingan.ucp.module.system.legacy.mapper.SysTenantMapper">
+
+    <resultMap id="BaseResultMap" type="com.lingan.ucp.module.system.legacy.entity.SysTenant">
+        <id column="id" property="id"/>
+        <result column="tenant_code" property="tenantCode"/>
+        <result column="tenant_name" property="tenantName"/>
+        <result column="tenant_type" property="tenantType"/>
+        <result column="contact_name" property="contactName"/>
+        <result column="contact_phone" property="contactPhone"/>
+        <result column="contact_email" property="contactEmail"/>
+        <result column="logo_url" property="logoUrl"/>
+        <result column="domain" property="domain"/>
+        <result column="isolation_strategy" property="isolationStrategy"/>
+        <result column="status" property="status"/>
+        <result column="expire_time" property="expireTime"/>
+        <result column="max_user_count" property="maxUserCount"/>
+        <result column="max_storage_size" property="maxStorageSize"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="deleted" property="deleted"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id
+        , tenant_code, tenant_name, tenant_type, contact_name, contact_phone,
+        contact_email, logo_url, domain, isolation_strategy, status, expire_time,
+        max_user_count, max_storage_size, create_time, update_time, deleted
+    </sql>
+
+    <select id="selectTenantPage" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM sys_tenant
+        WHERE deleted = 0
+        <if test="query.tenantCode != null and query.tenantCode != ''">
+            AND tenant_code LIKE CONCAT('%', #{query.tenantCode}, '%')
+        </if>
+        <if test="query.tenantName != null and query.tenantName != ''">
+            AND tenant_name LIKE CONCAT('%', #{query.tenantName}, '%')
+        </if>
+        <if test="query.tenantType != null">
+            AND tenant_type = #{query.tenantType}
+        </if>
+        <if test="query.status != null">
+            AND status = #{query.status}
+        </if>
+        ORDER BY create_time DESC
+    </select>
+
+</mapper>

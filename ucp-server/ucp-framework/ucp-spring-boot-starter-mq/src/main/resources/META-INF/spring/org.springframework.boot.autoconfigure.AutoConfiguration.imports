@@ -1,0 +1,3 @@
+com.lingan.ucp.framework.mq.redis.config.OsRedisMQProducerAutoConfiguration
+com.lingan.ucp.framework.mq.redis.config.OsRedisMQConsumerAutoConfiguration
+com.lingan.ucp.framework.mq.rabbitmq.config.OsRabbitMQAutoConfiguration

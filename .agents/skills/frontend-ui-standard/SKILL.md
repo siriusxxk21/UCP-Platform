@@ -15,7 +15,7 @@ description: >
 
 ## Repository Scope
 
-本技能维护于仓库 `.agents/skills/frontend-ui-standard/`；本技能及配套文件中的 `src/`、`@/` 路径均相对于 `os-front/`。前后端编码与验证要求同时遵循 [coding-standards](../coding-standards/SKILL.md)。数据中心、应用中心与运行端列表优先遵循 [表格规范](../coding-standards/references/table-pages.md)。组件 props、事件和 token 当前值以 `os-front/` 中的实现为准；示例中的固定值用于说明已有设计规格，实际开发优先使用当前 token 和公共样式。
+本技能维护于仓库 `.agents/skills/frontend-ui-standard/`；本技能及配套文件中的 `src/`、`@/` 路径均相对于 `ucp-front/`。前后端编码与验证要求同时遵循 [coding-standards](../coding-standards/SKILL.md)。数据中心、应用中心与运行端列表优先遵循 [表格规范](../coding-standards/references/table-pages.md)。组件 props、事件和 token 当前值以 `ucp-front/` 中的实现为准；示例中的固定值用于说明已有设计规格，实际开发优先使用当前 token 和公共样式。
 
 ## Core Principle
 
@@ -288,7 +288,7 @@ Any page with: search + table + pagination + CRUD operations.
 
 ```ts
 // Standard pattern
-import OsTablePage from '@/components/os-table-page/OsTablePage.vue'
+import OsTablePage from '@/components/ucp-table-page/OsTablePage.vue'
 import { useOsTablePage } from '@/composables/useOsTablePage'
 
 const { loading, tableData, pagination, queryForm, handleQuery, handleReset, ... } =

@@ -1,4 +1,0 @@
-com.richuang.os.framework.datasource.config.OsDataSourceAutoConfiguration
-com.richuang.os.framework.mybatis.config.OsMybatisAutoConfiguration
-com.richuang.os.framework.mybatis.config.OsDatabaseMetadataAutoConfiguration
-com.richuang.os.framework.translate.config.OsTranslateAutoConfiguration

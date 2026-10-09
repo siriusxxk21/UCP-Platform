@@ -18,27 +18,27 @@
 
 - 流程与任务新增代码参照 system 模块的 Controller → Service → Mapper 三层架构：Controller 负责参数、身份、权限入口及统一返回；Service 接口与 ServiceImpl 承担业务规则、事务和跨模块编排；Mapper／DO 负责持久化。按 controller、service、dal/dataobject、dal/mapper 分包，禁止 Controller 直调 Mapper。跨 Maven 模块使用 api DTO，业务模块不反向依赖 Web VO。已有类按受影响职责逐步调整，不为目录形式批量重构。
 
-- 新增、修改代码同步格式化。前端沿用现有 `.prettierrc`，无代码后端 Java 使用 `os-nocode/format.ps1` 的四空格规则，POM/XML 保持清晰缩进。
+- 新增、修改代码同步格式化。前端沿用现有 `.prettierrc`，无代码后端 Java 使用 `ucp-nocode/format.ps1` 的四空格规则，POM/XML 保持清晰缩进。
 - 后端 Java 禁止使用局部变量类型推断 `var`；局部变量必须声明明确类型，保证业务、事务与数据边界一目了然。
-- 状态、字段类型、关系类型、删除策略、分类、发布结果等固定业务取值在 `os-nocode-api` 的领域枚举统一定义；业务代码使用枚举判断和转换，禁止散落字符串魔法值。接口/数据库保存稳定编码，禁止枚举序号持久化。
+- 状态、字段类型、关系类型、删除策略、分类、发布结果等固定业务取值在 `ucp-nocode-api` 的领域枚举统一定义；业务代码使用枚举判断和转换，禁止散落字符串魔法值。接口/数据库保存稳定编码，禁止枚举序号持久化。
 - Service、Mapper、Controller 由 Spring / MyBatis 统一管理。依赖注入与平台底座一致，统一使用 `jakarta.annotation.Resource` 字段注入，不使用 `private final` 构造注入业务依赖；`@Service` / `@Mapper` 继续负责组件注册。依赖装配后的事务模板、JSON 读取器等本地配置在 `@PostConstruct` 初始化，不修改底座共享实例。枚举值、不可变值对象和本地缓存的 `final` 不属于依赖注入，按其语义保留。
 - 为类/公开契约和关键业务规则补充中文注释；重点解释事务边界、并发保护、字段删除语义、权限来源和特殊实现原因。
 - 不添加重复代码字面意思的注释，不格式化已经执行的迁移文件以免改变校验和。
 
 ## 数据库与交付
 
-- 手写平台部署 SQL 的唯一目录为 `os-server/sql/`，执行规范见 [database-migration.md](database-migration.md)。PostgreSQL 增量置于 `postgresql/migrations/VNNN__description.sql`，沿用现有 Flyway 与 `nocode_schema_history`；所有模块共用连续编号。已执行 SQL 的文件名、字节和锁清单摘要不可改写，修复追加新版本，不另建迁移器或复制模块内 SQL。手工修复与其他数据库方言放非自动扫描目录。
-- SQL 交付先运行 `node os-server/sql/check-migrations.mjs`，重新构建工具后 info／migrate／verify；禁止使用旧构建产物执行新迁移。动态业务对象发布及普通业务数据不从 public.sql 机械转换为平台升级；全量快照仍用于恢复，不作为日常增量入口。
-- 后端聚合模块为 `os-server/os-nocode`，子模块使用 `os-nocode-*`；Java 包、权限码与前端业务路由仍使用 `nocode` 领域名。
+- 手写平台部署 SQL 的唯一目录为 `ucp-server/sql/`，执行规范见 [database-migration.md](database-migration.md)。PostgreSQL 增量置于 `postgresql/migrations/VNNN__description.sql`，沿用现有 Flyway 与 `nocode_schema_history`；所有模块共用连续编号。已执行 SQL 的文件名、字节和锁清单摘要不可改写，修复追加新版本，不另建迁移器或复制模块内 SQL。手工修复与其他数据库方言放非自动扫描目录。
+- SQL 交付先运行 `node ucp-server/sql/check-migrations.mjs`，重新构建工具后 info／migrate／verify；禁止使用旧构建产物执行新迁移。动态业务对象发布及普通业务数据不从 public.sql 机械转换为平台升级；全量快照仍用于恢复，不作为日常增量入口。
+- 后端聚合模块为 `ucp-server/ucp-nocode`，子模块使用 `ucp-nocode-*`；Java 包、权限码与前端业务路由仍使用 `nocode` 领域名。
 - 无代码新增的元数据表、序列与索引使用 `nocode_` 前缀；新生成的业务主表、内部明细表及关联表使用 `biz_`（DEC-20260907-06）。已登记的旧物理名兼容保留，新建不得使用旧前缀。现有底座和 Flowable 表沿用其原名，不因被无代码使用而重命名。未来纳管既有表保留原物理名称，不能作为新增表命名规则的例外随意建表。
 - 开发沿用现有应用配置；验证直接使用当前配置的开发工程和开发环境；用户另有环境约定时遵循其最新要求。验证保留已有业务数据，只处理本次夹具或用户授权的体验数据。
 - 不把数据库清理或全量导出作为每轮对话的固定动作；根据结构、初始化数据和阶段交付需要判断。
 - 测试只清理自身创建且可准确识别的临时夹具，不清空现有开发数据或用户用于体验的示例。
-- 全量 SQL 统一存放在 `os-server/sql/full/`，当前 public 快照为该目录的 `public.sql`，带时间戳文件保留为历史备份；校验文件随备份存放。需要更新快照时使用现有导出工具，默认输出此目录；只改代码且库结构未变时不重复导出。
+- 全量 SQL 统一存放在 `ucp-server/sql/full/`，当前 public 快照为该目录的 `public.sql`，带时间戳文件保留为历史备份；校验文件随备份存放。需要更新快照时使用现有导出工具，默认输出此目录；只改代码且库结构未变时不重复导出。
 - 功能或实现约定变化时及时同步相应 skill 与 references；交付前实际运行并验证与改动相关的行为，不能沿用旧实现的通过记录冒充新结果。
 - 每次完成后删除本次编写且无法复用的一次性脚本；可复用的构建、迁移、导出、格式化和验证工具保留。临时凭据文件同步清理；运行日志、PID 和恢复备份按用途保留在忽略目录，不能只依靠 .gitignore 代替清理。
 
 ## 沟通
 
 - AI 主导实现并持续告知关键变化与原因；需要重要产品/架构取舍时与用户讨论。
-- 无代码代码统一位于后端 `os-nocode` 聚合模块；前端延续当前主题、组件及工程规则。
+- 无代码代码统一位于后端 `ucp-nocode` 聚合模块；前端延续当前主题、组件及工程规则。

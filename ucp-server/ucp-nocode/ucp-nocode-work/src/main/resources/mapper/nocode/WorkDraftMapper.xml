@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!-- 个人工作草稿；所有者、来源和修订共同约束查询与写入。 -->
+<mapper namespace="com.lingan.ucp.nocode.work.dal.mapper.draft.WorkDraftMapper">
+
+    <select
+            id="currentSourceDraft"
+            parameterType="org.apache.ibatis.binding.MapperMethod$ParamMap"
+            resultType="java.lang.String"
+            useCache="true"
+            flushCache="false">
+        SELECT id
+        FROM public.nocode_work_draft
+        WHERE creator = #{actor}
+        AND source_type = #{source}
+        AND source_id = #{sourceId}
+        AND state = #{state}
+        AND deleted = 0
+        ORDER BY update_time DESC, id DESC
+        LIMIT 1
+    </select>
+
+    <select
+            id="candidates"
+            parameterType="org.apache.ibatis.binding.MapperMethod$ParamMap"
+            resultType="com.lingan.ucp.nocode.api.work.WorkDraftViews$Candidate"
+            useCache="true"
+            flushCache="false">
+        SELECT id, create_time AS created_at
+        FROM public.nocode_work_draft
+        WHERE creator = #{actor}
+        AND deleted = 0
+        AND source_type = #{source}
+        AND resource_json -&gt;&gt; 'applicationId' = #{query.applicationId}
+        AND state = #{query.state}
+        <if test="query.before != null">
+            AND (create_time, id) &lt;(CAST(#{query.before.createdAt} AS timestamp), #{query.before.id})
+        </if>
+        ORDER BY create_time DESC, id DESC
+        LIMIT #{count}
+    </select>
+
+    <select
+            id="sourceCandidates"
+            parameterType="org.apache.ibatis.binding.MapperMethod$ParamMap"
+            resultType="com.lingan.ucp.nocode.api.work.WorkDraftViews$SourceCandidate"
+            useCache="true"
+            flushCache="false">
+        SELECT id, source_id, create_time AS created_at
+        FROM public.nocode_work_draft
+        WHERE creator = #{actor}
+        AND deleted = 0
+        AND source_type = #{source}
+        AND state = #{query.state}
+        <if test="query.before != null">
+            AND (create_time, id) &lt;(CAST(#{query.before.createdAt} AS timestamp), #{query.before.id})
+        </if>
+        ORDER BY create_time DESC, id DESC
+        LIMIT #{count}
+    </select>
+
+    <select
+            id="lockOwned"
+            parameterType="org.apache.ibatis.binding.MapperMethod$ParamMap"
+            resultType="com.lingan.ucp.nocode.work.dal.dataobject.draft.WorkDraftDO"
+            useCache="true"
+            flushCache="false">
+        SELECT *
+        FROM public.nocode_work_draft
+        WHERE id = #{id}
+        AND creator = #{actor}
+        AND deleted = 0
+        FOR UPDATE
+    </select>
+
+    <insert
+            id="create"
+            parameterType="org.apache.ibatis.binding.MapperMethod$ParamMap"
+            flushCache="true">
+        INSERT INTO public.nocode_work_draft(id, source_type, source_id, state, resource_json, object_id, record_id,
+            base_record_revision, values_json, details_json, related_json, creator, updater)
+        VALUES (#{row.id}, #{row.sourceType}, #{row.sourceId}, #{row.state}, CAST(#{row.resourceJson} AS jsonb),
+            #{row.objectId}, #{row.recordId}, #{row.baseRecordRevision}, CAST(#{row.valuesJson} AS jsonb), CAST(#{row.detailsJson} AS jsonb),
+            CAST(#{row.relatedJson} AS jsonb), #{actor}, #{actor})
+    </insert>
+
+    <update
+            id="save"
+            parameterType="org.apache.ibatis.binding.MapperMethod$ParamMap"
+            flushCache="true">
+        UPDATE public.nocode_work_draft
+        SET values_json = CAST(#{row.valuesJson} AS jsonb), details_json = CAST(#{row.detailsJson} AS jsonb),
+        related_json = CAST(#{row.relatedJson} AS jsonb), base_record_revision = #{row.baseRecordRevision}, lock_version = lock_version + 1,
+        updater = #{actor}, update_time = clock_timestamp()
+        WHERE id = #{row.id}
+        AND creator = #{actor}
+        AND deleted = 0
+        AND state = #{state}
+        AND lock_version = #{expected}
+    </update>
+
+    <update
+            id="transition"
+            parameterType="org.apache.ibatis.binding.MapperMethod$ParamMap"
+            flushCache="true">
+        UPDATE public.nocode_work_draft
+        SET state = #{next}, lock_version = lock_version + 1, updater = #{actor}, update_time = clock_timestamp()
+        WHERE id = #{id}
+        AND creator = #{actor}
+        AND deleted = 0
+        AND state = #{current}
+        AND lock_version = #{expected}
+    </update>
+
+</mapper>

@@ -1,0 +1,2 @@
+com.lingan.ucp.framework.tracer.config.OsTracerAutoConfiguration
+com.lingan.ucp.framework.tracer.config.OsMetricsAutoConfiguration

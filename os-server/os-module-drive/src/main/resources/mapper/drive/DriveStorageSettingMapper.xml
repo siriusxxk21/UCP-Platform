@@ -1,9 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="com.richuang.os.module.drive.dal.mysql.storage.DriveStorageSettingMapper">
-    <update id="updateConfigId">
-        UPDATE drive_storage_setting
-        SET config_id = #{configId}, updater = #{updater}, update_time = CURRENT_TIMESTAMP
-        WHERE id = 1 AND deleted = 0
-    </update>
-</mapper>

@@ -1,6 +1,6 @@
-# 前端编码细则（os-front）
+# 前端编码细则（ucp-front）
 
-配套主技能见 [../SKILL.md](../SKILL.md)。UI 视觉/组件/CSS 细则读 `frontend-ui-standard` 技能；表格页规范见 [table-pages.md](table-pages.md)。本页 `src/` 路径相对于仓库内 `os-front/`。
+配套主技能见 [../SKILL.md](../SKILL.md)。UI 视觉/组件/CSS 细则读 `frontend-ui-standard` 技能；表格页规范见 [table-pages.md](table-pages.md)。本页 `src/` 路径相对于仓库内 `ucp-front/`。
 
 ## 技术栈与工程约束
 

@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lingan.ucp.nocode.report.dal.mapper.ReportFolderMapper">
+    <select id="all" resultType="com.lingan.ucp.nocode.report.dal.dataobject.ReportFolderDO" useCache="false" flushCache="true">
+        SELECT * FROM public.nocode_report_folder WHERE resource_kind=#{kind} AND deleted=0 ORDER BY sort_no,name,id
+    </select>
+    <select id="visibleSeeds" resultType="long" useCache="false" flushCache="true">
+        <choose>
+            <when test="kind == 'DATASET'">
+                SELECT DISTINCT d.folder_id FROM public.nocode_report_dataset d WHERE d.deleted=0 AND d.folder_id IS NOT NULL
+                AND <include refid="com.lingan.ucp.nocode.report.dal.mapper.ReportDatasetMapper.visibleDataset"/>
+            </when>
+            <otherwise>
+                SELECT DISTINCT d.folder_id FROM public.nocode_report_dashboard d WHERE d.deleted=0 AND d.folder_id IS NOT NULL
+                AND (d.owner_id=#{actor} OR EXISTS (
+                    SELECT 1 FROM public.nocode_report_resource_acl acl,
+                        LATERAL jsonb_array_elements(acl.policy_json) member
+                    WHERE acl.resource_kind='DASHBOARD' AND acl.resource_id=d.id AND acl.deleted=0
+                        AND ((member-&gt;'actions') @&gt; '["VIEW"]'::jsonb
+                            OR (member-&gt;'actions') @&gt; '["EDIT"]'::jsonb
+                            OR (member-&gt;'actions') @&gt; '["PUBLISH"]'::jsonb)
+                        AND (member-&gt;&gt;'principalKind') || ':' || (member-&gt;&gt;'principalId') IN
+                        <foreach collection="principals" item="principal" open="(" separator="," close=")">#{principal}</foreach>
+                        AND (d.published_version IS NOT NULL OR (member-&gt;'actions') @&gt; '["EDIT"]'::jsonb)
+                ))
+            </otherwise>
+        </choose>
+    </select>
+    <insert id="create" useGeneratedKeys="true" keyProperty="row.id" keyColumn="id">
+        INSERT INTO public.nocode_report_folder(resource_kind,parent_id,name,sort_no,creator,updater)
+        VALUES(#{row.resourceKind},#{row.parentId},#{row.name},#{row.sortNo},#{actor},#{actor})
+    </insert>
+    <update id="save">
+        UPDATE public.nocode_report_folder SET parent_id=#{row.parentId},name=#{row.name},sort_no=#{row.sortNo},
+            lock_version=lock_version+1,updater=#{actor},update_time=clock_timestamp()
+        WHERE id=#{row.id} AND lock_version=#{expected} AND resource_kind=#{row.resourceKind} AND deleted=0
+    </update>
+    <select id="occupied" resultType="boolean" useCache="false" flushCache="true">
+        SELECT EXISTS(SELECT 1 FROM public.nocode_report_folder WHERE parent_id=#{id} AND resource_kind=#{kind} AND deleted=0)
+            OR EXISTS(SELECT 1 FROM
+                <choose><when test="kind == 'DATASET'">public.nocode_report_dataset</when><otherwise>public.nocode_report_dashboard</otherwise></choose>
+                WHERE folder_id=#{id} AND deleted=0)
+    </select>
+    <update id="remove">
+        UPDATE public.nocode_report_folder SET deleted=1,lock_version=lock_version+1,updater=#{actor},update_time=clock_timestamp()
+        WHERE id=#{id} AND lock_version=#{expected} AND resource_kind=#{kind} AND deleted=0
+    </update>
+</mapper>

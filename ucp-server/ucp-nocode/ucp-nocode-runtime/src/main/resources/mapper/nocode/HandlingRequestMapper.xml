@@ -1,0 +1,149 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!-- 业务办理申请；保留命令锁、修订检查和申请状态筛选。 -->
+<mapper namespace="com.lingan.ucp.nocode.runtime.dal.mapper.HandlingRequestMapper">
+
+    <select
+            id="lockCommand"
+            parameterType="java.lang.String"
+            resultType="java.lang.String"
+            useCache="true"
+            flushCache="false">
+        SELECT pg_advisory_xact_lock(7422, hashtext(#{key}))
+    </select>
+
+    <select
+            id="lock"
+            parameterType="java.lang.String"
+            resultType="com.lingan.ucp.nocode.runtime.dal.dataobject.HandlingRequestDO"
+            useCache="false"
+            flushCache="true">
+        SELECT *, id::text AS id, submission_id::text AS submission_id, definition_json::text AS definition_json
+        FROM public.nocode_handling_request
+        WHERE id = CAST(#{id} AS uuid)
+        AND deleted = 0
+        FOR UPDATE
+    </select>
+
+    <select
+            id="byCommand"
+            parameterType="org.apache.ibatis.binding.MapperMethod$ParamMap"
+            resultType="com.lingan.ucp.nocode.runtime.dal.dataobject.HandlingRequestDO"
+            useCache="false"
+            flushCache="true">
+        SELECT *, id::text AS id, submission_id::text AS submission_id, definition_json::text AS definition_json
+        FROM public.nocode_handling_request
+        WHERE creator = #{actor}
+        AND application_id = CAST(#{app} AS bigint)
+        AND object_id = CAST(#{object} AS bigint)
+        AND request_key = #{key}
+        AND deleted = 0
+    </select>
+
+    <insert
+            id="create"
+            parameterType="org.apache.ibatis.binding.MapperMethod$ParamMap"
+            flushCache="true">
+        INSERT INTO public.nocode_handling_request(id, application_id, application_name, application_version, object_id,
+            object_name, entry_id, record_id, operation, name, request_key, request_digest, definition_checksum,
+            definition_json, submission_id, process_definition_id, process_definition_key, status, creator, updater)
+        VALUES (CAST(#{r.id} AS uuid), #{r.applicationId}, #{r.applicationName}, #{r.applicationVersion}, #{r.objectId},
+            #{r.objectName}, #{r.entryId}, #{r.recordId}, #{r.operation}, #{r.name}, #{r.requestKey}, #{r.requestDigest},
+            #{r.definitionChecksum}, CAST(#{r.definitionJson} AS jsonb), #{r.submissionId}, #{r.processDefinitionId},
+            #{r.processDefinitionKey}, #{r.status}, #{actor}, #{actor})
+    </insert>
+
+    <update
+            id="attach"
+            parameterType="org.apache.ibatis.binding.MapperMethod$ParamMap"
+            flushCache="true">
+        UPDATE public.nocode_handling_request
+        SET process_instance_id = #{instance}, update_time = CURRENT_TIMESTAMP
+        WHERE id = CAST(#{id} AS uuid)
+        AND (process_instance_id IS NULL
+            OR process_instance_id = #{instance})
+        AND deleted = 0
+    </update>
+
+    <update
+            id="transition"
+            parameterType="org.apache.ibatis.binding.MapperMethod$ParamMap"
+            flushCache="true">
+        UPDATE public.nocode_handling_request
+        SET status = #{state}, record_id = COALESCE(#{record}, record_id), error = #{error}, lock_version = lock_version + 1,
+        updater = #{actor}, update_time = CURRENT_TIMESTAMP
+        WHERE id = CAST(#{id} AS uuid)
+        AND lock_version = #{revision}
+        AND deleted = 0
+    </update>
+
+    <select
+            id="protects"
+            parameterType="org.apache.ibatis.binding.MapperMethod$ParamMap"
+            resultType="_boolean"
+            useCache="true"
+            flushCache="false">
+        SELECT EXISTS(
+            SELECT 1
+            FROM public.nocode_handling_request
+            WHERE object_id = CAST(#{object} AS bigint)
+            AND record_id = #{record}
+            AND status IN ('PENDING', 'APPLY_PENDING', 'APPLY_FAILED')
+            AND (CAST(#{except} AS text) IS NULL
+                OR id::text != #{except})
+            AND deleted = 0)
+    </select>
+
+    <select
+            id="mine"
+            parameterType="org.apache.ibatis.binding.MapperMethod$ParamMap"
+            resultType="com.lingan.ucp.nocode.runtime.dal.dataobject.HandlingRequestDO"
+            useCache="true"
+            flushCache="false">
+        SELECT *, id::text AS id, submission_id::text AS submission_id, definition_json::text AS definition_json
+        FROM public.nocode_handling_request
+        WHERE creator = #{actor}
+        AND deleted = 0
+        <if test='state != null'>
+            AND status = #{state}
+        </if>
+        <if test='app != null'>
+            AND application_id = CAST(#{app} AS bigint)
+        </if>
+        ORDER BY create_time DESC, nocode_handling_request.id DESC
+        LIMIT #{limit}
+        OFFSET #{offset}
+    </select>
+
+    <select
+            id="countMine"
+            parameterType="org.apache.ibatis.binding.MapperMethod$ParamMap"
+            resultType="_long"
+            useCache="true"
+            flushCache="false">
+        SELECT count(*)
+        FROM public.nocode_handling_request
+        WHERE creator = #{actor}
+        AND deleted = 0
+        <if test='state != null'>
+            AND status = #{state}
+        </if>
+        <if test='app != null'>
+            AND application_id = CAST(#{app} AS bigint)
+        </if>
+    </select>
+
+    <select
+            id="pendingApplication"
+            resultType="java.lang.String"
+            useCache="true"
+            flushCache="false">
+        SELECT id::text
+        FROM public.nocode_handling_request
+        WHERE status = 'APPLY_PENDING'
+        AND deleted = 0
+        ORDER BY update_time
+        LIMIT 20
+    </select>
+
+</mapper>

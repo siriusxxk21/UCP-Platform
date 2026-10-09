@@ -1,0 +1,2 @@
+com.lingan.ucp.framework.datapermission.config.OsDataPermissionAutoConfiguration
+com.lingan.ucp.framework.datapermission.config.OsDeptDataPermissionAutoConfiguration

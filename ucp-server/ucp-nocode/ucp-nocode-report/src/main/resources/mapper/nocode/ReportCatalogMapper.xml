@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lingan.ucp.nocode.report.dal.mapper.ReportCatalogMapper">
+    <select id="page" resultType="com.lingan.ucp.nocode.report.dal.dataobject.ReportDashboardDO" useCache="false" flushCache="true">
+        SELECT d.* FROM public.nocode_report_dashboard d
+        JOIN public.nocode_report_dashboard_version v ON v.dashboard_id=d.id AND v.version_no=d.published_version AND v.deleted=0
+        WHERE d.deleted=0 AND d.status='ACTIVE'
+            AND (d.owner_id=#{actor} OR EXISTS (
+                SELECT 1 FROM public.nocode_report_resource_acl acl,
+                    LATERAL jsonb_array_elements(acl.policy_json) member
+                WHERE acl.resource_kind='DASHBOARD' AND acl.resource_id=d.id AND acl.deleted=0
+                    AND (member-&gt;'actions') @&gt; '["VIEW"]'::jsonb
+                    AND (member-&gt;&gt;'principalKind') || ':' || (member-&gt;&gt;'principalId') IN
+                    <foreach collection="principals" item="principal" open="(" separator="," close=")">#{principal}</foreach>
+            ))
+            AND (v.definition_json-&gt;&gt;'name') ILIKE #{search} ESCAPE '!'
+        ORDER BY d.update_time DESC,d.id DESC
+    </select>
+    <select id="dashboard" resultType="com.lingan.ucp.nocode.report.dal.dataobject.ReportDashboardDO" useCache="false" flushCache="true">
+        SELECT * FROM public.nocode_report_dashboard WHERE id=#{id} AND deleted=0 FOR SHARE
+    </select>
+    <select id="version" resultType="com.lingan.ucp.nocode.report.dal.dataobject.ReportDashboardVersionDO" useCache="false" flushCache="true">
+        SELECT * FROM public.nocode_report_dashboard_version WHERE dashboard_id=#{id} AND version_no=#{number} AND deleted=0
+    </select>
+    <update id="clearDraft">
+        UPDATE public.nocode_report_dependency SET deleted=1,updater=#{actor},update_time=clock_timestamp()
+        WHERE source_kind='APPLICATION' AND source_id=#{id} AND source_stage='DRAFT' AND deleted=0
+    </update>
+    <insert id="dependency">
+        INSERT INTO public.nocode_report_dependency(source_kind,source_id,source_stage,source_version,target_kind,target_id,target_version,field_refs_json,creator,updater)
+        VALUES('APPLICATION',#{id},CASE WHEN #{number}=0 THEN 'DRAFT' ELSE 'VERSION' END,#{number},'DASHBOARD',#{target},#{version},CAST(#{fields} AS jsonb),#{actor},#{actor})
+        ON CONFLICT(source_kind,source_id,source_stage,source_version,target_kind,target_id,target_version)
+        DO UPDATE SET field_refs_json=EXCLUDED.field_refs_json,deleted=0,updater=EXCLUDED.updater,update_time=clock_timestamp()
+    </insert>
+</mapper>

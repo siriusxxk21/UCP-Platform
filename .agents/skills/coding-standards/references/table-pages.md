@@ -4,11 +4,11 @@
 
 ## 复用与布局
 
-- 实现参考 `os-front/src/views/system/user/index.vue`；复用 `os-front/src/components/os-table-page/OsTablePage.vue` 和 `os-front/src/composables/useOsTablePage.ts`，不重建搜索、序号、分页、列设置或固定列协议。
+- 实现参考 `ucp-front/src/views/system/user/index.vue`；复用 `ucp-front/src/components/ucp-table-page/OsTablePage.vue` 和 `ucp-front/src/composables/useOsTablePage.ts`，不重建搜索、序号、分页、列设置或固定列协议。
 - 主列表采用搜索卡片与表格卡片，占满内容区，表体内部滚动，分页在卡片底部；已有菜单标题的页面不重复添加大标题和介绍。
 - 内嵌字段、关系、索引、版本、发布记录与应用引用列表继续用 OsTablePage，去掉重复外层业务卡片；单元格插槽保留已有编辑、配置和排序行为。
 - 页面整体边距继承 BasicLayout，业务页与内嵌看板不叠加整页 padding。对象设计器占满剩余内容区，顶部操作、页签、表头保持可见；增长的字段在表体内滚动。
-- 无代码管理表格的适配样式使用 `os-front/src/views/nocode/management-tables.css` 中的限定类，保持公共组件与系统管理兼容。
+- 无代码管理表格的适配样式使用 `ucp-front/src/views/nocode/management-tables.css` 中的限定类，保持公共组件与系统管理兼容。
 - 分类列表沿用左树右表：分类树独立获取，不受右表分页限制；切换分类回到第一页，保留其他查询条件，重置同时清除分类。
 
 ## 查询与工具栏

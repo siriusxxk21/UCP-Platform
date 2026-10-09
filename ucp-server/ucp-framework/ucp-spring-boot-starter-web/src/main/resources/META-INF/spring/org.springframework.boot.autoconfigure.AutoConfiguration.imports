@@ -1,0 +1,7 @@
+com.lingan.ucp.framework.apilog.config.OsApiLogAutoConfiguration
+com.lingan.ucp.framework.jackson.config.OsJacksonAutoConfiguration
+com.lingan.ucp.framework.swagger.config.OsSwaggerAutoConfiguration
+com.lingan.ucp.framework.web.config.OsWebAutoConfiguration
+com.lingan.ucp.framework.xss.config.OsXssAutoConfiguration
+com.lingan.ucp.framework.banner.config.OsBannerAutoConfiguration
+com.lingan.ucp.framework.encrypt.config.OsApiEncryptAutoConfiguration

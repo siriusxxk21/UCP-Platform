@@ -1,0 +1,1040 @@
+{
+  "com.lingan.ucp.nocode.application.dal.ApplicationAccessMapper.policy": {
+    "command": "SELECT",
+    "flushCache": true,
+    "affectData": false,
+    "timeout": null,
+    "statementType": "PREPARED",
+    "resultSetType": "DEFAULT",
+    "keyGenerator": "NoKeyGenerator",
+    "keyProperties": null,
+    "keyColumns": null,
+    "useCache": false,
+    "resultTypes": [
+      "com.lingan.ucp.nocode.application.dal.NocodeApplicationAccessDO"
+    ],
+    "sqlTemplate": "SELECT * FROM public.nocode_application_access WHERE application_id=#{id} AND deleted=0",
+    "parameterType": "long"
+  },
+  "com.lingan.ucp.nocode.application.dal.ApplicationAccessMapper.save": {
+    "command": "INSERT",
+    "flushCache": true,
+    "affectData": false,
+    "timeout": null,
+    "statementType": "PREPARED",
+    "resultSetType": "DEFAULT",
+    "keyGenerator": "NoKeyGenerator",
+    "keyProperties": null,
+    "keyColumns": null,
+    "sqlTemplate": "INSERT INTO public.nocode_application_access(application_id,lock_version,policy_json,creator,updater) VALUES(#{id},1,CAST(#{json} AS jsonb),#{actor},#{actor}) ON CONFLICT(application_id) DO UPDATE SET policy_json=EXCLUDED.policy_json,lock_version=nocode_application_access.lock_version+1,updater=#{actor},update_time=clock_timestamp()",
+    "parameterType": "org.apache.ibatis.binding.MapperMethod$ParamMap"
+  },
+  "com.lingan.ucp.nocode.application.dal.ObjectApplicationGrantMapper.audit": {
+    "command": "INSERT",
+    "flushCache": true,
+    "affectData": false,
+    "timeout": null,
+    "statementType": "PREPARED",
+    "resultSetType": "DEFAULT",
+    "keyGenerator": "NoKeyGenerator",
+    "keyProperties": null,
+    "keyColumns": null,
+    "sqlTemplate": "INSERT INTO public.nocode_object_application_grant_log(object_id,application_id,lock_version,grant_json,reason,creator,updater) SELECT object_id,application_id,lock_version,grant_json,reason,#{actor},#{actor} FROM public.nocode_object_application_grant WHERE object_id=#{object} AND application_id=#{app} AND deleted=0",
+    "parameterType": "org.apache.ibatis.binding.MapperMethod$ParamMap"
+  },
+  "com.lingan.ucp.nocode.application.dal.ObjectApplicationGrantMapper.find": {
+    "command": "SELECT",
+    "flushCache": true,
+    "affectData": false,
+    "timeout": null,
+    "statementType": "PREPARED",
+    "resultSetType": "DEFAULT",
+    "keyGenerator": "NoKeyGenerator",
+    "keyProperties": null,
+    "keyColumns": null,
+    "useCache": false,
+    "resultTypes": [
+      "com.lingan.ucp.nocode.application.dal.NocodeObjectApplicationGrantDO"
+    ],
+    "sqlTemplate": "SELECT * FROM public.nocode_object_application_grant WHERE object_id=#{object} AND application_id=#{app} AND deleted=0",
+    "parameterType": "org.apache.ibatis.binding.MapperMethod$ParamMap"
+  },
+  "com.lingan.ucp.nocode.application.dal.ObjectApplicationGrantMapper.forApplication": {
+    "command": "SELECT",
+    "flushCache": false,
+    "affectData": false,
+    "timeout": null,
+    "statementType": "PREPARED",
+    "resultSetType": "DEFAULT",
+    "keyGenerator": "NoKeyGenerator",
+    "keyProperties": null,
+    "keyColumns": null,
+    "useCache": true,
+    "resultTypes": [
+      "com.lingan.ucp.nocode.application.dal.NocodeObjectApplicationGrantDO"
+    ],
+    "sqlTemplate": "SELECT * FROM public.nocode_object_application_grant WHERE application_id=#{app} AND deleted=0 ORDER BY object_id",
+    "parameterType": "long"
+  },
+  "com.lingan.ucp.nocode.application.dal.ObjectApplicationGrantMapper.forObject": {
+    "command": "SELECT",
+    "flushCache": false,
+    "affectData": false,
+    "timeout": null,
+    "statementType": "PREPARED",
+    "resultSetType": "DEFAULT",
+    "keyGenerator": "NoKeyGenerator",
+    "keyProperties": null,
+    "keyColumns": null,
+    "useCache": true,
+    "resultTypes": [
+      "com.lingan.ucp.nocode.application.dal.NocodeObjectApplicationGrantDO"
+    ],
+    "sqlTemplate": "SELECT * FROM public.nocode_object_application_grant WHERE object_id=#{object} AND deleted=0 ORDER BY application_id",
+    "parameterType": "long"
+  },
+  "com.lingan.ucp.nocode.application.dal.ObjectApplicationGrantMapper.save": {
+    "command": "INSERT",
+    "flushCache": true,
+    "affectData": false,
+    "timeout": null,
+    "statementType": "PREPARED",
+    "resultSetType": "DEFAULT",
+    "keyGenerator": "NoKeyGenerator",
+    "keyProperties": null,
+    "keyColumns": null,
+    "sqlTemplate": "INSERT INTO public.nocode_object_application_grant(object_id,application_id,lock_version,grant_json,reason,creator,updater) VALUES(#{object},#{app},1,CAST(#{json} AS jsonb),#{reason},#{actor},#{actor}) ON CONFLICT(object_id,application_id) DO UPDATE SET grant_json=EXCLUDED.grant_json,reason=EXCLUDED.reason,lock_version=nocode_object_application_grant.lock_version+1, updater=#{actor},update_time=clock_timestamp()",
+    "parameterType": "org.apache.ibatis.binding.MapperMethod$ParamMap"
+  },
+  "com.lingan.ucp.nocode.application.dal.ObjectApplicationGrantMapper.targets": {
+    "command": "SELECT",
+    "flushCache": false,
+    "affectData": false,
+    "timeout": null,
+    "statementType": "PREPARED",
+    "resultSetType": "DEFAULT",
+    "keyGenerator": "NoKeyGenerator",
+    "keyProperties": null,
+    "keyColumns": null,
+    "useCache": true,
+    "resultTypes": [
+      "com.lingan.ucp.nocode.api.ObjectSharing$Target"
+    ],
+    "sqlTemplate": "SELECT id::text AS id,app_name AS name FROM public.nocode_application WHERE deleted=0 ORDER BY app_name,id",
+    "parameterType": null
+  },
+  "com.lingan.ucp.nocode.application.dal.RecordProcessMapper.active": {
+    "command": "SELECT",
+    "flushCache": false,
+    "affectData": false,
+    "timeout": null,
+    "statementType": "PREPARED",
+    "resultSetType": "DEFAULT",
+    "keyGenerator": "NoKeyGenerator",
+    "keyProperties": null,
+    "keyColumns": null,
+    "useCache": true,
+    "resultTypes": [
+      "com.lingan.ucp.nocode.application.dal.NocodeRecordProcessDO"
+    ],
+    "sqlTemplate": "SELECT * FROM public.nocode_record_process WHERE application_id=#{app} AND status='RUNNING' AND deleted=0",
+    "parameterType": "long"
+  },
+  "com.lingan.ucp.nocode.application.dal.RecordProcessMapper.attach": {
+    "command": "UPDATE",
+    "flushCache": true,
+    "affectData": false,
+    "timeout": null,
+    "statementType": "PREPARED",
+    "resultSetType": "DEFAULT",
+    "keyGenerator": "NoKeyGenerator",
+    "keyProperties": null,
+    "keyColumns": null,
+    "sqlTemplate": "UPDATE public.nocode_record_process SET process_instance_id=#{instance},update_time=clock_timestamp() WHERE id=#{id} AND deleted=0 AND (process_instance_id IS NULL OR process_instance_id=#{instance})",
+    "parameterType": "org.apache.ibatis.binding.MapperMethod$ParamMap"
+  },
+  "com.lingan.ucp.nocode.application.dal.RecordProcessMapper.byBusinessKey": {
+    "command": "SELECT",
+    "flushCache": false,
+    "affectData": false,
+    "timeout": null,
+    "statementType": "PREPARED",
+    "resultSetType": "DEFAULT",
+    "keyGenerator": "NoKeyGenerator",
+    "keyProperties": null,
+    "keyColumns": null,
+    "useCache": true,
+    "resultTypes": [
+      "com.lingan.ucp.nocode.application.dal.NocodeRecordProcessDO"
+    ],
+    "sqlTemplate": "SELECT * FROM public.nocode_record_process WHERE business_key=#{key} AND deleted=0",
+    "parameterType": "java.lang.String"
+  },
+  "com.lingan.ucp.nocode.application.dal.RecordProcessMapper.complete": {
+    "command": "UPDATE",
+    "flushCache": true,
+    "affectData": false,
+    "timeout": null,
+    "statementType": "PREPARED",
+    "resultSetType": "DEFAULT",
+    "keyGenerator": "NoKeyGenerator",
+    "keyProperties": null,
+    "keyColumns": null,
+    "sqlTemplate": "UPDATE public.nocode_record_process SET process_instance_id=#{instance},status=#{status},end_time=clock_timestamp(),updater='bpm-event',update_time=clock_timestamp() WHERE business_key=#{key} AND process_definition_key=#{definitionKey} AND status='RUNNING' AND deleted=0 AND (process_instance_id IS NULL OR process_instance_id=#{instance})",
+    "parameterType": "org.apache.ibatis.binding.MapperMethod$ParamMap"
+  },
+  "com.lingan.ucp.nocode.application.dal.RecordProcessMapper.create": {
+    "command": "INSERT",
+    "flushCache": true,
+    "affectData": false,
+    "timeout": null,
+    "statementType": "PREPARED",
+    "resultSetType": "DEFAULT",
+    "keyGenerator": "Jdbc3KeyGenerator",
+    "keyProperties": [
+      "row.id"
+    ],
+    "keyColumns": [
+      "id"
+    ],
+    "sqlTemplate": "INSERT INTO public.nocode_record_process(application_id,application_version,object_id,object_version,record_id,action_id,name,business_key,process_definition_id,process_definition_key,status,creator,updater) VALUES(#{row.applicationId},#{row.applicationVersion},#{row.objectId},#{row.objectVersion},#{row.recordId},#{row.actionId},#{row.name},#{row.businessKey},#{row.processDefinitionId},#{row.processDefinitionKey},#{row.status},#{actor},#{actor})",
+    "parameterType": "org.apache.ibatis.binding.MapperMethod$ParamMap"
+  },
+  "com.lingan.ucp.nocode.application.dal.RecordProcessMapper.history": {
+    "command": "SELECT",
+    "flushCache": false,
+    "affectData": false,
+    "timeout": null,
+    "statementType": "PREPARED",
+    "resultSetType": "DEFAULT",
+    "keyGenerator": "NoKeyGenerator",
+    "keyProperties": null,
+    "keyColumns": null,
+    "useCache": true,
+    "resultTypes": [
+      "com.lingan.ucp.nocode.application.dal.NocodeRecordProcessDO"
+    ],
+    "sqlTemplate": "SELECT * FROM public.nocode_record_process WHERE application_id=#{app} AND object_id=#{object} AND record_id=#{record} AND deleted=0 ORDER BY id DESC",
+    "parameterType": "org.apache.ibatis.binding.MapperMethod$ParamMap"
+  },
+  "com.lingan.ucp.nocode.application.dal.RecordProcessMapper.running": {
+    "command": "SELECT",
+    "flushCache": false,
+    "affectData": false,
+    "timeout": null,
+    "statementType": "PREPARED",
+    "resultSetType": "DEFAULT",
+    "keyGenerator": "NoKeyGenerator",
+    "keyProperties": null,
+    "keyColumns": null,
+    "useCache": true,
+    "resultTypes": [
+      "long"
+    ],
+    "sqlTemplate": "SELECT count(*) FROM public.nocode_record_process WHERE object_id=#{object} AND record_id=#{record} AND status='RUNNING' AND deleted=0",
+    "parameterType": "org.apache.ibatis.binding.MapperMethod$ParamMap"
+  },
+  "com.lingan.ucp.nocode.application.dal.mapper.TaskEntryAccessMapper.find": {
+    "command": "SELECT",
+    "flushCache": true,
+    "affectData": false,
+    "timeout": null,
+    "statementType": "PREPARED",
+    "resultSetType": "DEFAULT",
+    "keyGenerator": "NoKeyGenerator",
+    "keyProperties": null,
+    "keyColumns": null,
+    "useCache": false,
+    "resultTypes": [
+      "com.lingan.ucp.nocode.application.dal.dataobject.TaskEntryAccessDO"
+    ],
+    "sqlTemplate": "SELECT * FROM public.nocode_task_entry_access WHERE application_id=#{app} AND entry_id=#{entry} AND deleted=0",
+    "parameterType": "org.apache.ibatis.binding.MapperMethod$ParamMap"
+  },
+  "com.lingan.ucp.nocode.application.dal.mapper.TaskEntryAccessMapper.save": {
+    "command": "INSERT",
+    "flushCache": true,
+    "affectData": false,
+    "timeout": null,
+    "statementType": "PREPARED",
+    "resultSetType": "DEFAULT",
+    "keyGenerator": "NoKeyGenerator",
+    "keyProperties": null,
+    "keyColumns": null,
+    "sqlTemplate": "INSERT INTO public.nocode_task_entry_access(application_id,entry_id,enabled,policy_json,creator,updater) VALUES(#{app},#{entry},#{enabled},CAST(#{json} AS jsonb),#{actor},#{actor}) ON CONFLICT(application_id,entry_id) DO UPDATE SET enabled=EXCLUDED.enabled,policy_json=EXCLUDED.policy_json, lock_version=nocode_task_entry_access.lock_version+1,updater=#{actor},update_time=clock_timestamp()",
+    "parameterType": "org.apache.ibatis.binding.MapperMethod$ParamMap"
+  },
+  "com.lingan.ucp.nocode.runtime.dal.BusinessCounterMapper.next": {
+    "command": "SELECT",
+    "flushCache": true,
+    "affectData": true,
+    "timeout": null,
+    "statementType": "PREPARED",
+    "resultSetType": "DEFAULT",
+    "keyGenerator": "NoKeyGenerator",
+    "keyProperties": null,
+    "keyColumns": null,
+    "useCache": false,
+    "resultTypes": [
+      "long"
+    ],
+    "sqlTemplate": "INSERT INTO public.nocode_business_counter(object_id,field_id,period_key,next_value,creator,updater) VALUES(#{object},#{field},#{period},1,#{actor},#{actor}) ON CONFLICT(object_id,field_id,period_key) DO UPDATE SET next_value=nocode_business_counter.next_value+1,updater=#{actor},update_time=clock_timestamp() RETURNING next_value",
+    "parameterType": "org.apache.ibatis.binding.MapperMethod$ParamMap"
+  },
+  "com.lingan.ucp.nocode.runtime.dal.mapper.DetailPositionMapper.append": {
+    "command": "INSERT",
+    "flushCache": true,
+    "affectData": false,
+    "timeout": null,
+    "statementType": "PREPARED",
+    "resultSetType": "DEFAULT",
+    "keyGenerator": "NoKeyGenerator",
+    "keyProperties": null,
+    "keyColumns": null,
+    "sqlTemplate": "<script>INSERT INTO public.nocode_detail_position(object_id,detail_id,parent_id,record_id,position,creator,updater) VALUES <foreach collection='rows' item='row' index='position' separator=','>(CAST(#{object} AS bigint),CAST(#{detail} AS bigint),#{parent},#{row},#{position},#{actor},#{actor})</foreach> ON CONFLICT(object_id,detail_id,parent_id,record_id) DO UPDATE SET position=EXCLUDED.position,deleted=0,updater=EXCLUDED.updater,update_time=now()</script>",
+    "parameterType": "org.apache.ibatis.binding.MapperMethod$ParamMap"
+  },
+  "com.lingan.ucp.nocode.runtime.dal.mapper.DetailPositionMapper.clear": {
+    "command": "UPDATE",
+    "flushCache": true,
+    "affectData": false,
+    "timeout": null,
+    "statementType": "PREPARED",
+    "resultSetType": "DEFAULT",
+    "keyGenerator": "NoKeyGenerator",
+    "keyProperties": null,
+    "keyColumns": null,
+    "sqlTemplate": "UPDATE public.nocode_detail_position SET deleted=1,updater=#{actor},update_time=now() WHERE object_id=CAST(#{object} AS bigint) AND detail_id=CAST(#{detail} AS bigint) AND parent_id=#{parent} AND deleted=0",
+    "parameterType": "org.apache.ibatis.binding.MapperMethod$ParamMap"
+  },
+  "com.lingan.ucp.nocode.runtime.dal.mapper.DetailPositionMapper.order": {
+    "command": "SELECT",
+    "flushCache": false,
+    "affectData": false,
+    "timeout": null,
+    "statementType": "PREPARED",
+    "resultSetType": "DEFAULT",
+    "keyGenerator": "NoKeyGenerator",
+    "keyProperties": null,
+    "keyColumns": null,
+    "useCache": true,
+    "resultTypes": [
+      "java.lang.String"
+    ],
+    "sqlTemplate": "SELECT record_id FROM public.nocode_detail_position WHERE object_id=CAST(#{object} AS bigint) AND detail_id=CAST(#{detail} AS bigint) AND parent_id=#{parent} AND deleted=0 ORDER BY position,id",
+    "parameterType": "org.apache.ibatis.binding.MapperMethod$ParamMap"
+  },
+  "com.lingan.ucp.nocode.runtime.dal.mapper.DocumentReceiptMapper.append": {
+    "command": "INSERT",
+    "flushCache": true,
+    "affectData": false,
+    "timeout": null,
+    "statementType": "PREPARED",
+    "resultSetType": "DEFAULT",
+    "keyGenerator": "NoKeyGenerator",
+    "keyProperties": null,
+    "keyColumns": null,
+    "sqlTemplate": "INSERT INTO public.nocode_document_receipt(application_id,object_id,operation,request_key,request_digest,operation_id,record_id,record_revision,policy_version,result_json,creator,updater) VALUES(#{row.applicationId},#{row.objectId},#{row.operation},#{row.requestKey},#{row.requestDigest},CAST(#{row.operationId} AS uuid),#{row.recordId},#{row.recordRevision},#{row.policyVersion},CAST(#{row.resultJson} AS jsonb),#{actor},#{actor})",
+    "parameterType": "org.apache.ibatis.binding.MapperMethod$ParamMap"
+  },
+  "com.lingan.ucp.nocode.runtime.dal.mapper.DocumentReceiptMapper.find": {
+    "command": "SELECT",
+    "flushCache": true,
+    "affectData": false,
+    "timeout": null,
+    "statementType": "PREPARED",
+    "resultSetType": "DEFAULT",
+    "keyGenerator": "NoKeyGenerator",
+    "keyProperties": null,
+    "keyColumns": null,
+    "useCache": false,
+    "resultTypes": [
+      "com.lingan.ucp.nocode.runtime.dal.dataobject.DocumentReceiptDO"
+    ],
+    "sqlTemplate": "SELECT *, operation_id::text AS operation_id, result_json::text AS result_json FROM public.nocode_document_receipt WHERE creator=#{actor} AND application_id=CAST(#{app} AS bigint) AND object_id=CAST(#{object} AS bigint) AND operation=#{operation} AND request_key=#{key} AND deleted=0",
+    "parameterType": "org.apache.ibatis.binding.MapperMethod$ParamMap"
+  },
+  "com.lingan.ucp.nocode.runtime.dal.mapper.DocumentReceiptMapper.lock": {
+    "command": "SELECT",
+    "flushCache": false,
+    "affectData": false,
+    "timeout": null,
+    "statementType": "PREPARED",
+    "resultSetType": "DEFAULT",
+    "keyGenerator": "NoKeyGenerator",
+    "keyProperties": null,
+    "keyColumns": null,
+    "useCache": true,
+    "resultTypes": [
+      "java.lang.String"
+    ],
+    "sqlTemplate": "SELECT pg_advisory_xact_lock(7422, hashtext(#{key}))",
+    "parameterType": "java.lang.String"
+  },
+  "com.lingan.ucp.nocode.runtime.dal.mapper.HandlingRequestMapper.attach": {
+    "command": "UPDATE",
+    "flushCache": true,
+    "affectData": false,
+    "timeout": null,
+    "statementType": "PREPARED",
+    "resultSetType": "DEFAULT",
+    "keyGenerator": "NoKeyGenerator",
+    "keyProperties": null,
+    "keyColumns": null,
+    "sqlTemplate": "UPDATE public.nocode_handling_request SET process_instance_id=#{instance},update_time=CURRENT_TIMESTAMP WHERE id=CAST(#{id} AS uuid) AND (process_instance_id IS NULL OR process_instance_id=#{instance}) AND deleted=0",
+    "parameterType": "org.apache.ibatis.binding.MapperMethod$ParamMap"
+  },
+  "com.lingan.ucp.nocode.runtime.dal.mapper.HandlingRequestMapper.byCommand": {
+    "command": "SELECT",
+    "flushCache": true,
+    "affectData": false,
+    "timeout": null,
+    "statementType": "PREPARED",
+    "resultSetType": "DEFAULT",
+    "keyGenerator": "NoKeyGenerator",
+    "keyProperties": null,
+    "keyColumns": null,
+    "useCache": false,
+    "resultTypes": [
+      "com.lingan.ucp.nocode.runtime.dal.dataobject.HandlingRequestDO"
+    ],
+    "sqlTemplate": "SELECT *,id::text AS id,submission_id::text AS submission_id,definition_json::text AS definition_json FROM public.nocode_handling_request WHERE creator=#{actor} AND application_id=CAST(#{app} AS bigint) AND object_id=CAST(#{object} AS bigint) AND request_key=#{key} AND deleted=0",
+    "parameterType": "org.apache.ibatis.binding.MapperMethod$ParamMap"
+  },
+  "com.lingan.ucp.nocode.runtime.dal.mapper.HandlingRequestMapper.countMine": {
+    "command": "SELECT",
+    "flushCache": false,
+    "affectData": false,
+    "timeout": null,
+    "statementType": "PREPARED",
+    "resultSetType": "DEFAULT",
+    "keyGenerator": "NoKeyGenerator",
+    "keyProperties": null,
+    "keyColumns": null,
+    "useCache": true,
+    "resultTypes": [
+      "long"
+    ],
+    "sqlTemplate": "<script>SELECT count(*) FROM public.nocode_handling_request WHERE creator=#{actor} AND deleted=0 <if test='state != null'>AND status=#{state}</if><if test='app != null'>AND application_id=CAST(#{app} AS bigint)</if></script>",
+    "parameterType": "org.apache.ibatis.binding.MapperMethod$ParamMap"
+  },
+  "com.lingan.ucp.nocode.runtime.dal.mapper.HandlingRequestMapper.create": {
+    "command": "INSERT",
+    "flushCache": true,
+    "affectData": false,
+    "timeout": null,
+    "statementType": "PREPARED",
+    "resultSetType": "DEFAULT",
+    "keyGenerator": "NoKeyGenerator",
+    "keyProperties": null,
+    "keyColumns": null,
+    "sqlTemplate": "INSERT INTO public.nocode_handling_request(id,application_id,application_name,application_version,object_id,object_name,entry_id,record_id,operation,name,request_key,request_digest,definition_checksum,definition_json,submission_id,process_definition_id,process_definition_key,status,creator,updater) VALUES(CAST(#{r.id} AS uuid),#{r.applicationId},#{r.applicationName},#{r.applicationVersion},#{r.objectId},#{r.objectName},#{r.entryId},#{r.recordId},#{r.operation},#{r.name},#{r.requestKey},#{r.requestDigest},#{r.definitionChecksum},CAST(#{r.definitionJson} AS jsonb),#{r.submissionId},#{r.processDefinitionId},#{r.processDefinitionKey},#{r.status},#{actor},#{actor})",
+    "parameterType": "org.apache.ibatis.binding.MapperMethod$ParamMap"
+  },
+  "com.lingan.ucp.nocode.runtime.dal.mapper.HandlingRequestMapper.lock": {
+    "command": "SELECT",
+    "flushCache": true,
+    "affectData": false,
+    "timeout": null,
+    "statementType": "PREPARED",
+    "resultSetType": "DEFAULT",
+    "keyGenerator": "NoKeyGenerator",
+    "keyProperties": null,
+    "keyColumns": null,
+    "useCache": false,
+    "resultTypes": [
+      "com.lingan.ucp.nocode.runtime.dal.dataobject.HandlingRequestDO"
+    ],
+    "sqlTemplate": "SELECT *,id::text AS id,submission_id::text AS submission_id,definition_json::text AS definition_json FROM public.nocode_handling_request WHERE id=CAST(#{id} AS uuid) AND deleted=0 FOR UPDATE",
+    "parameterType": "java.lang.String"
+  },
+  "com.lingan.ucp.nocode.runtime.dal.mapper.HandlingRequestMapper.lockCommand": {
+    "command": "SELECT",
+    "flushCache": false,
+    "affectData": false,
+    "timeout": null,
+    "statementType": "PREPARED",
+    "resultSetType": "DEFAULT",
+    "keyGenerator": "NoKeyGenerator",
+    "keyProperties": null,
+    "keyColumns": null,
+    "useCache": true,
+    "resultTypes": [
+      "java.lang.String"
+    ],
+    "sqlTemplate": "SELECT pg_advisory_xact_lock(7422,hashtext(#{key}))",
+    "parameterType": "java.lang.String"
+  },
+  "com.lingan.ucp.nocode.runtime.dal.mapper.HandlingRequestMapper.mine": {
+    "command": "SELECT",
+    "flushCache": false,
+    "affectData": false,
+    "timeout": null,
+    "statementType": "PREPARED",
+    "resultSetType": "DEFAULT",
+    "keyGenerator": "NoKeyGenerator",
+    "keyProperties": null,
+    "keyColumns": null,
+    "useCache": true,
+    "resultTypes": [
+      "com.lingan.ucp.nocode.runtime.dal.dataobject.HandlingRequestDO"
+    ],
+    "sqlTemplate": "<script>SELECT *,id::text AS id,submission_id::text AS submission_id,definition_json::text AS definition_json FROM public.nocode_handling_request WHERE creator=#{actor} AND deleted=0 <if test='state != null'>AND status=#{state}</if><if test='app != null'>AND application_id=CAST(#{app} AS bigint)</if> ORDER BY create_time DESC,nocode_handling_request.id DESC LIMIT #{limit} OFFSET #{offset}</script>",
+    "parameterType": "org.apache.ibatis.binding.MapperMethod$ParamMap"
+  },
+  "com.lingan.ucp.nocode.runtime.dal.mapper.HandlingRequestMapper.pendingApplication": {
+    "command": "SELECT",
+    "flushCache": false,
+    "affectData": false,
+    "timeout": null,
+    "statementType": "PREPARED",
+    "resultSetType": "DEFAULT",
+    "keyGenerator": "NoKeyGenerator",
+    "keyProperties": null,
+    "keyColumns": null,
+    "useCache": true,
+    "resultTypes": [
+      "java.lang.String"
+    ],
+    "sqlTemplate": "SELECT id::text FROM public.nocode_handling_request WHERE status='APPLY_PENDING' AND deleted=0 ORDER BY update_time LIMIT 20",
+    "parameterType": null
+  },
+  "com.lingan.ucp.nocode.runtime.dal.mapper.HandlingRequestMapper.protects": {
+    "command": "SELECT",
+    "flushCache": false,
+    "affectData": false,
+    "timeout": null,
+    "statementType": "PREPARED",
+    "resultSetType": "DEFAULT",
+    "keyGenerator": "NoKeyGenerator",
+    "keyProperties": null,
+    "keyColumns": null,
+    "useCache": true,
+    "resultTypes": [
+      "boolean"
+    ],
+    "sqlTemplate": "SELECT EXISTS(SELECT 1 FROM public.nocode_handling_request WHERE object_id=CAST(#{object} AS bigint) AND record_id=#{record} AND status IN ('PENDING','APPLY_PENDING','APPLY_FAILED') AND (CAST(#{except} AS text) IS NULL OR id::text!=#{except}) AND deleted=0)",
+    "parameterType": "org.apache.ibatis.binding.MapperMethod$ParamMap"
+  },
+  "com.lingan.ucp.nocode.runtime.dal.mapper.HandlingRequestMapper.transition": {
+    "command": "UPDATE",
+    "flushCache": true,
+    "affectData": false,
+    "timeout": null,
+    "statementType": "PREPARED",
+    "resultSetType": "DEFAULT",
+    "keyGenerator": "NoKeyGenerator",
+    "keyProperties": null,
+    "keyColumns": null,
+    "sqlTemplate": "UPDATE public.nocode_handling_request SET status=#{state},record_id=COALESCE(#{record},record_id),error=#{error},lock_version=lock_version+1,updater=#{actor},update_time=CURRENT_TIMESTAMP WHERE id=CAST(#{id} AS uuid) AND lock_version=#{revision} AND deleted=0",
+    "parameterType": "org.apache.ibatis.binding.MapperMethod$ParamMap"
+  },
+  "com.lingan.ucp.nocode.runtime.dal.mapper.RecordHistoryMapper.append": {
+    "command": "INSERT",
+    "flushCache": true,
+    "affectData": false,
+    "timeout": null,
+    "statementType": "PREPARED",
+    "resultSetType": "DEFAULT",
+    "keyGenerator": "NoKeyGenerator",
+    "keyProperties": null,
+    "keyColumns": null,
+    "sqlTemplate": "INSERT INTO public.nocode_record_history(object_id,record_id,application_id,operation,before_json,after_json,definition_json,creator,updater,operation_id,policy_version,source_json) VALUES(CAST(#{object} AS bigint),#{record},CAST(#{app} AS bigint),#{operation},CAST(#{before} AS jsonb),CAST(#{after} AS jsonb),CAST(#{definition} AS jsonb),#{actor},#{actor},CAST(#{operationId} AS uuid),#{policyVersion},CAST(#{source} AS jsonb))",
+    "parameterType": "org.apache.ibatis.binding.MapperMethod$ParamMap"
+  },
+  "com.lingan.ucp.nocode.runtime.dal.mapper.RecordHistoryMapper.coverage": {
+    "command": "SELECT",
+    "flushCache": false,
+    "affectData": false,
+    "timeout": null,
+    "statementType": "PREPARED",
+    "resultSetType": "DEFAULT",
+    "keyGenerator": "NoKeyGenerator",
+    "keyProperties": null,
+    "keyColumns": null,
+    "useCache": true,
+    "resultTypes": [
+      "java.lang.String"
+    ],
+    "sqlTemplate": "SELECT covered_from::text FROM public.nocode_record_history_head WHERE object_id=CAST(#{object} AS bigint) AND deleted=0",
+    "parameterType": "java.lang.String"
+  },
+  "com.lingan.ucp.nocode.runtime.dal.mapper.RecordHistoryMapper.createdFromTask": {
+    "command": "SELECT",
+    "flushCache": false,
+    "affectData": false,
+    "timeout": null,
+    "statementType": "PREPARED",
+    "resultSetType": "DEFAULT",
+    "keyGenerator": "NoKeyGenerator",
+    "keyProperties": null,
+    "keyColumns": null,
+    "useCache": true,
+    "resultTypes": [
+      "boolean"
+    ],
+    "sqlTemplate": "SELECT EXISTS(SELECT 1 FROM public.nocode_record_history WHERE deleted=0 AND creator=#{actor} AND application_id=CAST(#{app} AS bigint) AND object_id=CAST(#{object} AS bigint) AND record_id=#{record} AND operation='CREATE' AND source_json->>'kind'='TASK_ENTRY' AND source_json->>'entryId'=#{entry})",
+    "parameterType": "org.apache.ibatis.binding.MapperMethod$ParamMap"
+  },
+  "com.lingan.ucp.nocode.runtime.dal.mapper.RecordHistoryMapper.events": {
+    "command": "SELECT",
+    "flushCache": true,
+    "affectData": false,
+    "timeout": null,
+    "statementType": "PREPARED",
+    "resultSetType": "DEFAULT",
+    "keyGenerator": "NoKeyGenerator",
+    "keyProperties": null,
+    "keyColumns": null,
+    "useCache": false,
+    "resultTypes": [
+      "java.lang.String"
+    ],
+    "sqlTemplate": "<script>SELECT jsonb_build_object('id',id::text,'recordId',record_id,'operation',operation,'time',occurred_at,'actor',creator,'before',before_json,'after',after_json,'source',CASE WHEN jsonb_exists(source_json,'relatedEvents') THEN (source_json - 'relatedEvents') || jsonb_build_object('relatedUpdate',true) ELSE source_json END<if test='fields'>,'fields',(SELECT coalesce(jsonb_agg(jsonb_build_object('id',f->>'id','name',f->>'name')),'[]'::jsonb) FROM jsonb_array_elements(definition_json->'fields') f),'detailFields',(SELECT coalesce(jsonb_agg(jsonb_build_object('id',d->>'id','name',d->>'name','fields',(SELECT coalesce(jsonb_agg(jsonb_build_object('id',f->>'id','name',f->>'name')),'[]'::jsonb) FROM jsonb_array_elements(d->'fields') f))),'[]'::jsonb) FROM jsonb_array_elements(definition_json->'details') d)</if>)::text FROM public.nocode_record_history WHERE object_id=CAST(#{object} AS bigint) AND deleted=0 AND occurred_at &lt;= CAST(#{end} AS timestamptz) AND pg_visible_in_snapshot(written_txid,CAST(#{visibility} AS pg_snapshot)) AND occurred_at &gt;= CAST(#{start} AS timestamptz) AND operation &lt;> 'BASELINE' AND (occurred_at,id) &gt; (CAST(#{cursorTime} AS timestamptz),#{cursorId})<if test='records != null'> AND record_id IN <foreach collection='records' item='record' open='(' separator=',' close=')'>#{record}</foreach></if> ORDER BY occurred_at,id LIMIT 1000</script>",
+    "parameterType": "org.apache.ibatis.binding.MapperMethod$ParamMap"
+  },
+  "com.lingan.ucp.nocode.runtime.dal.mapper.RecordHistoryMapper.lock": {
+    "command": "SELECT",
+    "flushCache": false,
+    "affectData": false,
+    "timeout": null,
+    "statementType": "PREPARED",
+    "resultSetType": "DEFAULT",
+    "keyGenerator": "NoKeyGenerator",
+    "keyProperties": null,
+    "keyColumns": null,
+    "useCache": true,
+    "resultTypes": [
+      "java.lang.String"
+    ],
+    "sqlTemplate": "SELECT pg_advisory_xact_lock(7418, hashtext(#{object}))",
+    "parameterType": "java.lang.String"
+  },
+  "com.lingan.ucp.nocode.runtime.dal.mapper.RecordHistoryMapper.snapshotBatch": {
+    "command": "SELECT",
+    "flushCache": true,
+    "affectData": false,
+    "timeout": null,
+    "statementType": "PREPARED",
+    "resultSetType": "DEFAULT",
+    "keyGenerator": "NoKeyGenerator",
+    "keyProperties": null,
+    "keyColumns": null,
+    "useCache": false,
+    "resultTypes": [
+      "java.lang.String"
+    ],
+    "sqlTemplate": "<script>SELECT jsonb_build_object('recordId',record_id,'row',after_json)::text FROM (SELECT DISTINCT ON (record_id) record_id,after_json FROM public.nocode_record_history WHERE object_id=CAST(#{object} AS bigint) AND deleted=0 AND occurred_at &lt;= CAST(#{end} AS timestamptz) AND pg_visible_in_snapshot(written_txid,CAST(#{visibility} AS pg_snapshot)) AND record_id &gt; #{cursor} ORDER BY record_id,occurred_at DESC,id DESC LIMIT 1000) s</script>",
+    "parameterType": "org.apache.ibatis.binding.MapperMethod$ParamMap"
+  },
+  "com.lingan.ucp.nocode.runtime.dal.mapper.RecordHistoryMapper.snapshots": {
+    "command": "SELECT",
+    "flushCache": true,
+    "affectData": false,
+    "timeout": null,
+    "statementType": "PREPARED",
+    "resultSetType": "DEFAULT",
+    "keyGenerator": "NoKeyGenerator",
+    "keyProperties": null,
+    "keyColumns": null,
+    "useCache": false,
+    "resultTypes": [
+      "java.lang.String"
+    ],
+    "sqlTemplate": "<script>SELECT jsonb_build_object('recordId',record_id,'row',after_json,'fields',(SELECT coalesce(jsonb_agg(jsonb_build_object('id',f->>'id','name',f->>'name')),'[]'::jsonb) FROM jsonb_array_elements(definition_json->'fields') f))::text FROM (SELECT DISTINCT ON (record_id) record_id,after_json,definition_json FROM public.nocode_record_history WHERE object_id=CAST(#{object} AS bigint) AND deleted=0 AND occurred_at &lt;= CAST(#{end} AS timestamptz) AND pg_visible_in_snapshot(written_txid,CAST(#{visibility} AS pg_snapshot))<if test='records != null'> AND record_id IN <foreach collection='records' item='record' open='(' separator=',' close=')'>#{record}</foreach></if> ORDER BY record_id,occurred_at DESC,id DESC) s</script>",
+    "parameterType": "org.apache.ibatis.binding.MapperMethod$ParamMap"
+  },
+  "com.lingan.ucp.nocode.runtime.dal.mapper.RecordHistoryMapper.start": {
+    "command": "INSERT",
+    "flushCache": true,
+    "affectData": false,
+    "timeout": null,
+    "statementType": "PREPARED",
+    "resultSetType": "DEFAULT",
+    "keyGenerator": "NoKeyGenerator",
+    "keyProperties": null,
+    "keyColumns": null,
+    "sqlTemplate": "INSERT INTO public.nocode_record_history_head(object_id,creator,updater) VALUES(CAST(#{object} AS bigint),#{actor},#{actor})",
+    "parameterType": "org.apache.ibatis.binding.MapperMethod$ParamMap"
+  },
+  "com.lingan.ucp.nocode.runtime.dal.mapper.RecordHistoryMapper.taskEvents": {
+    "command": "SELECT",
+    "flushCache": false,
+    "affectData": false,
+    "timeout": null,
+    "statementType": "PREPARED",
+    "resultSetType": "DEFAULT",
+    "keyGenerator": "NoKeyGenerator",
+    "keyProperties": null,
+    "keyColumns": null,
+    "useCache": true,
+    "resultTypes": [
+      "java.lang.String"
+    ],
+    "sqlTemplate": "SELECT jsonb_build_object('id',id::text,'recordId',record_id,'time',occurred_at,'operation',operation,'before',before_json,'after',after_json,'related',jsonb_exists(source_json,'relatedEvents'))::text FROM public.nocode_record_history WHERE deleted=0 AND creator=#{actor} AND application_id=CAST(#{app} AS bigint) AND object_id=CAST(#{object} AS bigint) AND source_json->>'kind'='TASK_ENTRY' AND source_json->>'entryId'=#{entry} AND id < #{before} ORDER BY id DESC LIMIT 100",
+    "parameterType": "org.apache.ibatis.binding.MapperMethod$ParamMap"
+  },
+  "com.lingan.ucp.nocode.runtime.dal.mapper.RecordHistoryMapper.transactionCheckpoint": {
+    "command": "SELECT",
+    "flushCache": true,
+    "affectData": false,
+    "timeout": null,
+    "statementType": "PREPARED",
+    "resultSetType": "DEFAULT",
+    "keyGenerator": "NoKeyGenerator",
+    "keyProperties": null,
+    "keyColumns": null,
+    "useCache": false,
+    "resultTypes": [
+      "long"
+    ],
+    "sqlTemplate": "SELECT coalesce(max(id),0) FROM public.nocode_record_history WHERE written_txid=pg_current_xact_id() AND deleted=0",
+    "parameterType": null
+  },
+  "com.lingan.ucp.nocode.runtime.dal.mapper.RecordHistoryMapper.transactionEvents": {
+    "command": "SELECT",
+    "flushCache": true,
+    "affectData": false,
+    "timeout": null,
+    "statementType": "PREPARED",
+    "resultSetType": "DEFAULT",
+    "keyGenerator": "NoKeyGenerator",
+    "keyProperties": null,
+    "keyColumns": null,
+    "useCache": false,
+    "resultTypes": [
+      "java.lang.String"
+    ],
+    "sqlTemplate": "SELECT jsonb_build_object('eventId',id::text,'objectId',object_id::text,'recordId',record_id,'operationId',operation_id::text)::text FROM public.nocode_record_history WHERE written_txid=pg_current_xact_id() AND deleted=0 AND id>#{checkpoint} AND application_id=CAST(#{app} AS bigint) AND creator=#{actor} AND operation<>'BASELINE' ORDER BY id",
+    "parameterType": "org.apache.ibatis.binding.MapperMethod$ParamMap"
+  },
+  "com.lingan.ucp.nocode.runtime.dal.mapper.RecordHistoryMapper.view": {
+    "command": "SELECT",
+    "flushCache": true,
+    "affectData": false,
+    "timeout": null,
+    "statementType": "PREPARED",
+    "resultSetType": "DEFAULT",
+    "keyGenerator": "NoKeyGenerator",
+    "keyProperties": null,
+    "keyColumns": null,
+    "useCache": false,
+    "resultTypes": [
+      "java.lang.String"
+    ],
+    "sqlTemplate": "SELECT jsonb_build_object('end',clock_timestamp(),'visibility',pg_current_snapshot()::text)::text",
+    "parameterType": null
+  },
+  "com.lingan.ucp.nocode.work.dal.mapper.draft.WorkDraftMapper.candidates": {
+    "command": "SELECT",
+    "flushCache": false,
+    "affectData": false,
+    "timeout": null,
+    "statementType": "PREPARED",
+    "resultSetType": "DEFAULT",
+    "keyGenerator": "NoKeyGenerator",
+    "keyProperties": null,
+    "keyColumns": null,
+    "useCache": true,
+    "resultTypes": [
+      "com.lingan.ucp.nocode.api.work.WorkDraftViews$Candidate"
+    ],
+    "sqlTemplate": "<script>\nSELECT id, create_time AS created_at FROM public.nocode_work_draft\nWHERE creator=#{actor} AND deleted=0 AND source_type=#{source}\n  AND resource_json->>'applicationId'=#{query.applicationId} AND state=#{query.state}\n<if test=\"query.before != null\">\n  AND (create_time,id) &lt; (CAST(#{query.before.createdAt} AS timestamp),#{query.before.id})\n</if>\nORDER BY create_time DESC,id DESC LIMIT #{count}\n</script>\n",
+    "parameterType": "org.apache.ibatis.binding.MapperMethod$ParamMap"
+  },
+  "com.lingan.ucp.nocode.work.dal.mapper.draft.WorkDraftMapper.create": {
+    "command": "INSERT",
+    "flushCache": true,
+    "affectData": false,
+    "timeout": null,
+    "statementType": "PREPARED",
+    "resultSetType": "DEFAULT",
+    "keyGenerator": "NoKeyGenerator",
+    "keyProperties": null,
+    "keyColumns": null,
+    "sqlTemplate": "INSERT INTO public.nocode_work_draft(id,source_type,source_id,state,resource_json,object_id,record_id,base_record_revision,values_json,details_json,related_json,creator,updater) VALUES(#{row.id},#{row.sourceType},#{row.sourceId},#{row.state},CAST(#{row.resourceJson} AS jsonb),#{row.objectId},#{row.recordId},#{row.baseRecordRevision},CAST(#{row.valuesJson} AS jsonb),CAST(#{row.detailsJson} AS jsonb),CAST(#{row.relatedJson} AS jsonb),#{actor},#{actor})",
+    "parameterType": "org.apache.ibatis.binding.MapperMethod$ParamMap"
+  },
+  "com.lingan.ucp.nocode.work.dal.mapper.draft.WorkDraftMapper.currentSourceDraft": {
+    "command": "SELECT",
+    "flushCache": false,
+    "affectData": false,
+    "timeout": null,
+    "statementType": "PREPARED",
+    "resultSetType": "DEFAULT",
+    "keyGenerator": "NoKeyGenerator",
+    "keyProperties": null,
+    "keyColumns": null,
+    "useCache": true,
+    "resultTypes": [
+      "java.lang.String"
+    ],
+    "sqlTemplate": "SELECT id FROM public.nocode_work_draft WHERE creator=#{actor} AND source_type=#{source} AND source_id=#{sourceId} AND state=#{state} AND deleted=0 ORDER BY update_time DESC,id DESC LIMIT 1",
+    "parameterType": "org.apache.ibatis.binding.MapperMethod$ParamMap"
+  },
+  "com.lingan.ucp.nocode.work.dal.mapper.draft.WorkDraftMapper.lockOwned": {
+    "command": "SELECT",
+    "flushCache": false,
+    "affectData": false,
+    "timeout": null,
+    "statementType": "PREPARED",
+    "resultSetType": "DEFAULT",
+    "keyGenerator": "NoKeyGenerator",
+    "keyProperties": null,
+    "keyColumns": null,
+    "useCache": true,
+    "resultTypes": [
+      "com.lingan.ucp.nocode.work.dal.dataobject.draft.WorkDraftDO"
+    ],
+    "sqlTemplate": "SELECT * FROM public.nocode_work_draft WHERE id=#{id} AND creator=#{actor} AND deleted=0 FOR UPDATE",
+    "parameterType": "org.apache.ibatis.binding.MapperMethod$ParamMap"
+  },
+  "com.lingan.ucp.nocode.work.dal.mapper.draft.WorkDraftMapper.save": {
+    "command": "UPDATE",
+    "flushCache": true,
+    "affectData": false,
+    "timeout": null,
+    "statementType": "PREPARED",
+    "resultSetType": "DEFAULT",
+    "keyGenerator": "NoKeyGenerator",
+    "keyProperties": null,
+    "keyColumns": null,
+    "sqlTemplate": "UPDATE public.nocode_work_draft SET values_json=CAST(#{row.valuesJson} AS jsonb),details_json=CAST(#{row.detailsJson} AS jsonb),related_json=CAST(#{row.relatedJson} AS jsonb),base_record_revision=#{row.baseRecordRevision},lock_version=lock_version+1,updater=#{actor},update_time=clock_timestamp() WHERE id=#{row.id} AND creator=#{actor} AND deleted=0 AND state=#{state} AND lock_version=#{expected}",
+    "parameterType": "org.apache.ibatis.binding.MapperMethod$ParamMap"
+  },
+  "com.lingan.ucp.nocode.work.dal.mapper.draft.WorkDraftMapper.sourceCandidates": {
+    "command": "SELECT",
+    "flushCache": false,
+    "affectData": false,
+    "timeout": null,
+    "statementType": "PREPARED",
+    "resultSetType": "DEFAULT",
+    "keyGenerator": "NoKeyGenerator",
+    "keyProperties": null,
+    "keyColumns": null,
+    "useCache": true,
+    "resultTypes": [
+      "com.lingan.ucp.nocode.api.work.WorkDraftViews$SourceCandidate"
+    ],
+    "sqlTemplate": "<script>\nSELECT id, source_id, create_time AS created_at FROM public.nocode_work_draft\nWHERE creator=#{actor} AND deleted=0 AND source_type=#{source} AND state=#{query.state}\n<if test=\"query.before != null\">\n  AND (create_time,id) &lt; (CAST(#{query.before.createdAt} AS timestamp),#{query.before.id})\n</if>\nORDER BY create_time DESC,id DESC LIMIT #{count}\n</script>\n",
+    "parameterType": "org.apache.ibatis.binding.MapperMethod$ParamMap"
+  },
+  "com.lingan.ucp.nocode.work.dal.mapper.draft.WorkDraftMapper.transition": {
+    "command": "UPDATE",
+    "flushCache": true,
+    "affectData": false,
+    "timeout": null,
+    "statementType": "PREPARED",
+    "resultSetType": "DEFAULT",
+    "keyGenerator": "NoKeyGenerator",
+    "keyProperties": null,
+    "keyColumns": null,
+    "sqlTemplate": "UPDATE public.nocode_work_draft SET state=#{next},lock_version=lock_version+1,updater=#{actor},update_time=clock_timestamp() WHERE id=#{id} AND creator=#{actor} AND deleted=0 AND state=#{current} AND lock_version=#{expected}",
+    "parameterType": "org.apache.ibatis.binding.MapperMethod$ParamMap"
+  },
+  "com.lingan.ucp.nocode.work.dal.mapper.event.WorkEventMapper.append": {
+    "command": "INSERT",
+    "flushCache": true,
+    "affectData": false,
+    "timeout": null,
+    "statementType": "PREPARED",
+    "resultSetType": "DEFAULT",
+    "keyGenerator": "NoKeyGenerator",
+    "keyProperties": null,
+    "keyColumns": null,
+    "sqlTemplate": "INSERT INTO public.nocode_work_event(id,event_type,source_type,source_id,submission_id,creator,updater) VALUES(#{row.id},#{row.eventType},#{row.sourceType},#{row.sourceId},#{row.submissionId},#{actor},#{actor})",
+    "parameterType": "org.apache.ibatis.binding.MapperMethod$ParamMap"
+  },
+  "com.lingan.ucp.nocode.work.dal.mapper.submission.WorkSubmissionMapper.byCommand": {
+    "command": "SELECT",
+    "flushCache": false,
+    "affectData": false,
+    "timeout": null,
+    "statementType": "PREPARED",
+    "resultSetType": "DEFAULT",
+    "keyGenerator": "NoKeyGenerator",
+    "keyProperties": null,
+    "keyColumns": null,
+    "useCache": true,
+    "resultTypes": [
+      "com.lingan.ucp.nocode.work.dal.dataobject.submission.WorkSubmissionDO"
+    ],
+    "sqlTemplate": "SELECT * FROM public.nocode_work_submission WHERE creator=#{actor} AND idempotency_key=#{key} AND deleted=0",
+    "parameterType": "org.apache.ibatis.binding.MapperMethod$ParamMap"
+  },
+  "com.lingan.ucp.nocode.work.dal.mapper.submission.WorkSubmissionMapper.byDraft": {
+    "command": "SELECT",
+    "flushCache": false,
+    "affectData": false,
+    "timeout": null,
+    "statementType": "PREPARED",
+    "resultSetType": "DEFAULT",
+    "keyGenerator": "NoKeyGenerator",
+    "keyProperties": null,
+    "keyColumns": null,
+    "useCache": true,
+    "resultTypes": [
+      "com.lingan.ucp.nocode.work.dal.dataobject.submission.WorkSubmissionDO"
+    ],
+    "sqlTemplate": "SELECT * FROM public.nocode_work_submission WHERE draft_id=#{draftId} AND creator=#{actor} AND deleted=0",
+    "parameterType": "org.apache.ibatis.binding.MapperMethod$ParamMap"
+  },
+  "com.lingan.ucp.nocode.work.dal.mapper.submission.WorkSubmissionMapper.create": {
+    "command": "INSERT",
+    "flushCache": true,
+    "affectData": false,
+    "timeout": null,
+    "statementType": "PREPARED",
+    "resultSetType": "DEFAULT",
+    "keyGenerator": "NoKeyGenerator",
+    "keyProperties": null,
+    "keyColumns": null,
+    "sqlTemplate": "INSERT INTO public.nocode_work_submission(id,draft_id,idempotency_key,request_digest,material_json,creator,updater) VALUES(#{row.id},#{row.draftId},#{row.idempotencyKey},#{row.requestDigest},CAST(#{row.materialJson} AS jsonb),#{actor},#{actor})",
+    "parameterType": "org.apache.ibatis.binding.MapperMethod$ParamMap"
+  },
+  "com.lingan.ucp.nocode.work.dal.mapper.submission.WorkSubmissionMapper.flowMaterial": {
+    "command": "SELECT",
+    "flushCache": false,
+    "affectData": false,
+    "timeout": null,
+    "statementType": "PREPARED",
+    "resultSetType": "DEFAULT",
+    "keyGenerator": "NoKeyGenerator",
+    "keyProperties": null,
+    "keyColumns": null,
+    "useCache": true,
+    "resultTypes": [
+      "com.lingan.ucp.nocode.work.dal.dataobject.submission.WorkSubmissionDO"
+    ],
+    "sqlTemplate": "SELECT s.* FROM public.nocode_work_submission s JOIN public.nocode_work_draft d ON d.id=s.draft_id WHERE s.id=#{id} AND s.creator=#{actor} AND d.creator=#{actor} AND d.source_type=#{source} AND d.source_id=#{taskId} AND s.deleted=0 AND d.deleted=0",
+    "parameterType": "org.apache.ibatis.binding.MapperMethod$ParamMap"
+  },
+  "com.lingan.ucp.nocode.work.dal.mapper.submission.WorkSubmissionMapper.lockCommand": {
+    "command": "SELECT",
+    "flushCache": true,
+    "affectData": false,
+    "timeout": null,
+    "statementType": "PREPARED",
+    "resultSetType": "DEFAULT",
+    "keyGenerator": "NoKeyGenerator",
+    "keyProperties": null,
+    "keyColumns": null,
+    "useCache": false,
+    "resultTypes": [
+      "java.lang.Integer"
+    ],
+    "sqlTemplate": "SELECT 1 FROM pg_advisory_xact_lock(hashtextextended(#{scope},0))",
+    "parameterType": "java.lang.String"
+  },
+  "com.lingan.ucp.nocode.work.dal.mapper.submission.WorkSubmissionMapper.owned": {
+    "command": "SELECT",
+    "flushCache": false,
+    "affectData": false,
+    "timeout": null,
+    "statementType": "PREPARED",
+    "resultSetType": "DEFAULT",
+    "keyGenerator": "NoKeyGenerator",
+    "keyProperties": null,
+    "keyColumns": null,
+    "useCache": true,
+    "resultTypes": [
+      "com.lingan.ucp.nocode.work.dal.dataobject.submission.WorkSubmissionDO"
+    ],
+    "sqlTemplate": "SELECT * FROM public.nocode_work_submission WHERE id=#{id} AND creator=#{actor} AND deleted=0",
+    "parameterType": "org.apache.ibatis.binding.MapperMethod$ParamMap"
+  },
+  "com.lingan.ucp.nocode.work.dal.mapper.submission.WorkSubmissionMapper.protectsRecord": {
+    "command": "SELECT",
+    "flushCache": false,
+    "affectData": false,
+    "timeout": null,
+    "statementType": "PREPARED",
+    "resultSetType": "DEFAULT",
+    "keyGenerator": "NoKeyGenerator",
+    "keyProperties": null,
+    "keyColumns": null,
+    "useCache": true,
+    "resultTypes": [
+      "boolean"
+    ],
+    "sqlTemplate": "SELECT EXISTS(SELECT 1 FROM public.nocode_work_submission s JOIN public.nocode_work_draft d ON d.id=s.draft_id WHERE s.deleted=0 AND d.deleted=0 AND d.source_type=#{source} AND s.material_json->>'objectId'=#{objectId} AND s.material_json->>'recordId'=#{recordId})",
+    "parameterType": "org.apache.ibatis.binding.MapperMethod$ParamMap"
+  },
+  "com.lingan.ucp.nocode.workflow.dal.mapper.task.FlowTaskBindingMapper.create": {
+    "command": "INSERT",
+    "flushCache": true,
+    "affectData": false,
+    "timeout": null,
+    "statementType": "PREPARED",
+    "resultSetType": "DEFAULT",
+    "keyGenerator": "NoKeyGenerator",
+    "keyProperties": null,
+    "keyColumns": null,
+    "sqlTemplate": "INSERT INTO public.nocode_flow_task_binding(task_id,task_json,creator,updater) VALUES(#{taskId},CAST(#{taskJson} AS jsonb),#{actor},#{actor})",
+    "parameterType": "org.apache.ibatis.binding.MapperMethod$ParamMap"
+  },
+  "com.lingan.ucp.nocode.workflow.dal.mapper.task.FlowTaskBindingMapper.get": {
+    "command": "SELECT",
+    "flushCache": false,
+    "affectData": false,
+    "timeout": null,
+    "statementType": "PREPARED",
+    "resultSetType": "DEFAULT",
+    "keyGenerator": "NoKeyGenerator",
+    "keyProperties": null,
+    "keyColumns": null,
+    "useCache": true,
+    "resultTypes": [
+      "com.lingan.ucp.nocode.workflow.dal.dataobject.task.FlowTaskBindingDO"
+    ],
+    "sqlTemplate": "SELECT * FROM public.nocode_flow_task_binding WHERE task_id=#{taskId} AND deleted=0 FOR UPDATE",
+    "parameterType": "java.lang.String"
+  },
+  "com.lingan.ucp.nocode.workflow.dal.mapper.task.FlowTaskBindingMapper.lock": {
+    "command": "SELECT",
+    "flushCache": true,
+    "affectData": false,
+    "timeout": null,
+    "statementType": "PREPARED",
+    "resultSetType": "DEFAULT",
+    "keyGenerator": "NoKeyGenerator",
+    "keyProperties": null,
+    "keyColumns": null,
+    "useCache": false,
+    "resultTypes": [
+      "java.lang.Integer"
+    ],
+    "sqlTemplate": "SELECT 1 FROM pg_advisory_xact_lock(hashtextextended(#{key},0))",
+    "parameterType": "java.lang.String"
+  },
+  "com.lingan.ucp.nocode.workflow.dal.mapper.task.FlowTaskBindingMapper.read": {
+    "command": "SELECT",
+    "flushCache": false,
+    "affectData": false,
+    "timeout": null,
+    "statementType": "PREPARED",
+    "resultSetType": "DEFAULT",
+    "keyGenerator": "NoKeyGenerator",
+    "keyProperties": null,
+    "keyColumns": null,
+    "useCache": true,
+    "resultTypes": [
+      "com.lingan.ucp.nocode.workflow.dal.dataobject.task.FlowTaskBindingDO"
+    ],
+    "sqlTemplate": "SELECT * FROM public.nocode_flow_task_binding WHERE task_id=#{taskId} AND deleted=0",
+    "parameterType": "java.lang.String"
+  },
+  "com.lingan.ucp.nocode.workflow.dal.mapper.task.FlowTaskBindingMapper.submitted": {
+    "command": "UPDATE",
+    "flushCache": true,
+    "affectData": false,
+    "timeout": null,
+    "statementType": "PREPARED",
+    "resultSetType": "DEFAULT",
+    "keyGenerator": "NoKeyGenerator",
+    "keyProperties": null,
+    "keyColumns": null,
+    "sqlTemplate": "UPDATE public.nocode_flow_task_binding SET submission_id=#{material},submitter=#{actor},request_digest=#{digest},updater=#{actor},update_time=clock_timestamp() WHERE task_id=#{taskId} AND deleted=0 AND submission_id IS NULL",
+    "parameterType": "org.apache.ibatis.binding.MapperMethod$ParamMap"
+  }
+}

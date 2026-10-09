@@ -1,0 +1,4 @@
+com.lingan.ucp.framework.datasource.config.OsDataSourceAutoConfiguration
+com.lingan.ucp.framework.mybatis.config.OsMybatisAutoConfiguration
+com.lingan.ucp.framework.mybatis.config.OsDatabaseMetadataAutoConfiguration
+com.lingan.ucp.framework.translate.config.OsTranslateAutoConfiguration

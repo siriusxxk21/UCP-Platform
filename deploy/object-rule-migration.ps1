@@ -10,7 +10,7 @@
 .EXAMPLE
 ./deploy/object-rule-migration.ps1 apply -Report ./report.json -Actor 10001 -SuspendApplications 17,18
 .NOTES
-复用正式启动包的依赖及当前 os-server/src/main/resources 配置，由 Spring Boot 装配数据库与 Redis。
+复用正式启动包的依赖及当前 ucp-server/src/main/resources 配置，由 Spring Boot 装配数据库与 Redis。
 清理选项默认值必须在 dry-run 时显式传 -ClearOptionDefaults，随后检查报告再 apply。
 若结构变化要求暂停应用，须显式传 -SuspendApplications 确认报告内的应用 ID；修订改变即拒绝，成功后恢复本次暂停的应用，失败整笔回滚。
 apply / rollback / 非演练 linkage-readonly 默认要求 8080 端口停止监听；端口不同时传 -AppPort。
@@ -37,12 +37,12 @@ param(
 )
 $ErrorActionPreference = 'Stop'
 $taskProjectRoot = Split-Path -Parent $PSScriptRoot
-$taskServerRoot = Join-Path $taskProjectRoot 'os-server'
-$taskOsJar = Join-Path $taskServerRoot 'os-server/target/os.jar'
-$taskToolsJar = Join-Path $taskServerRoot 'os-nocode/os-nocode-tools/target/os.jar'
-$taskConfigRoot = Join-Path $taskServerRoot 'os-server/src/main/resources'
-$taskWork = Join-Path $taskServerRoot 'os-nocode/.work/object-rule-migration'
-$taskNio = Join-Path $taskServerRoot 'os-nocode/.work/nio'
+$taskServerRoot = Join-Path $taskProjectRoot 'ucp-server'
+$taskOsJar = Join-Path $taskServerRoot 'ucp-server/target/os.jar'
+$taskToolsJar = Join-Path $taskServerRoot 'ucp-nocode/ucp-nocode-tools/target/os.jar'
+$taskConfigRoot = Join-Path $taskServerRoot 'ucp-server/src/main/resources'
+$taskWork = Join-Path $taskServerRoot 'ucp-nocode/.work/object-rule-migration'
+$taskNio = Join-Path $taskServerRoot 'ucp-nocode/.work/nio'
 
 if ($ClearOptionDefaults -and $Command -ne 'dry-run') {
     throw '-ClearOptionDefaults 仅用于 dry-run；执行时按已经检查的报告处理。'
@@ -80,7 +80,7 @@ if ($Build) {
     try {
         # 只在当前构建进程中选择已经指定的 JDK，不改用户的系统环境。
         $env:JAVA_HOME = Split-Path -Parent (Split-Path -Parent $taskJava)
-        & mvn -B '-Dmaven.test.skip=true' -pl os-server,os-nocode/os-nocode-tools -am package
+        & mvn -B '-Dmaven.test.skip=true' -pl ucp-server,ucp-nocode/ucp-nocode-tools -am package
         if ($LASTEXITCODE -ne 0) { throw '对象规则迁移工具构建失败。' }
     } finally { $env:JAVA_HOME = $taskPreviousJavaHome; Pop-Location }
 }
@@ -118,7 +118,7 @@ $taskJavaArgs = @('-Xmx1g', '-Dfile.encoding=UTF-8',
     "-Djdk.net.unixdomain.tmpdir=$($taskNio.Replace('\', '/'))",
     "-Dspring.config.additional-location=$taskConfigUri",
     "-Dloader.path=$($taskToolsJar.Replace('\', '/'))",
-    '-Dloader.main=com.richuang.os.nocode.tools.ObjectRuleMigrationTool',
+    '-Dloader.main=com.lingan.ucp.nocode.tools.ObjectRuleMigrationTool',
     '-cp', $taskOsJar, 'org.springframework.boot.loader.launch.PropertiesLauncher') + $taskToolArgs
 New-Item -ItemType Directory -Path $taskWork -Force | Out-Null
 $taskArgFile = Join-Path $taskWork 'run.args'

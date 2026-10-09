@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lingan.ucp.module.bpm.dal.mapper.task.BpmHistoricTaskQueryMapper">
+    <!-- 引擎片段内部使用相对引用；在本命名空间建立别名，避免复制引擎 SQL。 -->
+    <sql id="commonSelectHistoricTaskInstancesByQueryCriteriaSql">
+        <include refid="org.flowable.task.service.impl.persistence.entity.HistoricTaskInstanceEntityImpl.commonSelectHistoricTaskInstancesByQueryCriteriaSql"/>
+    </sql>
+    <sql id="commonTaskInstanceQuerySql">
+        <include refid="org.flowable.task.service.impl.persistence.entity.HistoricTaskInstanceEntityImpl.commonTaskInstanceQuerySql"/>
+    </sql>
+    <sql id="commonTaskInstanceOrQuerySql">
+        <include refid="org.flowable.task.service.impl.persistence.entity.HistoricTaskInstanceEntityImpl.commonTaskInstanceOrQuerySql"/>
+    </sql>
+    <sql id="executionVariableOperator">
+        <include refid="org.flowable.task.service.impl.persistence.entity.HistoricTaskInstanceEntityImpl.executionVariableOperator"/>
+    </sql>
+
+    <!-- 复用当前引擎的联表及所有筛选条件，只补公开查询 API 缺少的节点排除条件。 -->
+    <sql id="filteredTasks">
+        <include refid="org.flowable.task.service.impl.persistence.entity.HistoricTaskInstanceEntityImpl.selectHistoricTaskInstancesByQueryCriteriaSql"/>
+        and (RES.TASK_DEF_KEY_ is null or RES.TASK_DEF_KEY_ &lt;&gt; #{excludedTaskDefinitionKey, jdbcType=NVARCHAR})
+    </sql>
+
+    <select id="count" resultType="long">
+        select count(distinct RES.ID_)
+        <include refid="filteredTasks"/>
+    </select>
+
+    <select id="selectTaskIds" resultType="string">
+        <if test="needsPaging">${limitBefore}</if>
+        select RES.ID_ <if test="needsPaging">${limitBetween}</if>
+        <include refid="filteredTasks"/>
+        ${orderBy}
+        <if test="needsPaging">${limitAfter}</if>
+    </select>
+</mapper>

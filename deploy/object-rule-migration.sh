@@ -10,14 +10,14 @@
 #                    （2026-09-29 只读口径：把列出对象上 readOnly=false 的数据联动改为只读、发布对象并同步引用它的应用）
 #   报告与结果文件写在当前目录（--out 可改）。先 cd 到本次迁移的工作目录再执行。
 # 例：
-#   mkdir -p /opt/os-server/migration/object-rule && cd /opt/os-server/migration/object-rule
-#   bash /opt/os-server/deploy/object-rule-migration.sh /opt/os-server/backend/config/ dry-run
+#   mkdir -p /opt/ucp-server/migration/object-rule && cd /opt/ucp-server/migration/object-rule
+#   bash /opt/ucp-server/deploy/object-rule-migration.sh /opt/ucp-server/backend/config/ dry-run
 #
 # 环境变量（都有默认值）：
-#   OS_JAR        正式后端包，默认 /opt/os-server/backend/os.jar（工具复用其中的全部业务依赖与配置）
-#   TOOLS_JAR     工具包，默认与本脚本同目录的 os-nocode-tools.jar；与 OS_JAR 必须出自同一提交。构建（os-server 目录）：
-#                   mvn -B -Dmaven.test.skip=true -pl os-server,os-nocode/os-nocode-tools -am clean package
-#                   → os-nocode/os-nocode-tools/target/os.jar（各模块 finalName 都是 os，复制时改名为 os-nocode-tools.jar）
+#   OS_JAR        正式后端包，默认 /opt/ucp-server/backend/os.jar（工具复用其中的全部业务依赖与配置）
+#   TOOLS_JAR     工具包，默认与本脚本同目录的 ucp-nocode-tools.jar；与 OS_JAR 必须出自同一提交。构建（ucp-server 目录）：
+#                   mvn -B -Dmaven.test.skip=true -pl ucp-server,ucp-nocode/ucp-nocode-tools -am clean package
+#                   → ucp-nocode/ucp-nocode-tools/target/os.jar（各模块 finalName 都是 os，复制时改名为 ucp-nocode-tools.jar）
 #                 只需这一个 jar，其余依赖全部来自 OS_JAR，不需要另补。
 #   JAVA          默认 $JAVA_HOME/bin/java，否则 PATH 上的 java（须 JDK 21）
 #   JAVA_OPTS     默认 "-Xmx1g"
@@ -31,8 +31,8 @@
 set -Eeuo pipefail
 
 script_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
-OS_JAR=${OS_JAR:-/opt/os-server/backend/os.jar}
-TOOLS_JAR=${TOOLS_JAR:-$script_dir/os-nocode-tools.jar}
+OS_JAR=${OS_JAR:-/opt/ucp-server/backend/os.jar}
+TOOLS_JAR=${TOOLS_JAR:-$script_dir/ucp-nocode-tools.jar}
 JAVA=${JAVA:-${JAVA_HOME:+$JAVA_HOME/bin/}java}
 JAVA_OPTS=${JAVA_OPTS:--Xmx1g}
 SPRING_PROFILE=${SPRING_PROFILE:-os}
@@ -94,6 +94,6 @@ spring_props=(
 # shellcheck disable=SC2086 # JAVA_OPTS 按空格拆成多个 JVM 参数
 exec "$JAVA" $JAVA_OPTS -Dfile.encoding=UTF-8 "${spring_props[@]}" \
     "-Dloader.path=$TOOLS_JAR" \
-    -Dloader.main=com.richuang.os.nocode.tools.ObjectRuleMigrationTool \
+    -Dloader.main=com.lingan.ucp.nocode.tools.ObjectRuleMigrationTool \
     -cp "$OS_JAR" org.springframework.boot.loader.launch.PropertiesLauncher \
     "$command" "$@"

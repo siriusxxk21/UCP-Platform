@@ -1,0 +1,490 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lingan.ucp.nocode.runtime.dal.mapper.RecordMapper">
+    <!--
+        公共片段：recordValue/prefix/alias 均由本文件及调用 XML 静态指定，不能来自请求。
+        prefix 保留原参数对象路径；临时 _record 仅用于渲染，不作为延后绑定的数据来源。
+    -->
+    <sql id="recordTable">
+        <bind name="_record" value="${recordValue}"/>
+        ${@com.lingan.ucp.nocode.runtime.dal.support.RuntimeSqlParameters@quote(_record.schema)}.${@com.lingan.ucp.nocode.runtime.dal.support.RuntimeSqlParameters@quote(_record.table)}
+    </sql>
+
+    <sql id="recordWhere">
+        <bind name="_record" value="${recordValue}"/>
+        WHERE TRUE
+        <if test="_record.deletedColumn">
+            AND ${alias}.${@com.lingan.ucp.nocode.runtime.dal.support.RuntimeSqlParameters@quote('deleted')}::text IN ('0','false')
+        </if>
+        <if test="_record.id != null">
+            AND ${alias}.${@com.lingan.ucp.nocode.runtime.dal.support.RuntimeSqlParameters@quote(_record.keyColumn)}::text = #{${prefix}id}
+        </if>
+        <if test="_record.parentColumn != null and _record.parentId != null">
+            AND ${alias}.${@com.lingan.ucp.nocode.runtime.dal.support.RuntimeSqlParameters@quote(_record.parentColumn)}::text = #{${prefix}parentId}
+        </if>
+        <if test="_record.creator != null">
+            AND ${alias}.${@com.lingan.ucp.nocode.runtime.dal.support.RuntimeSqlParameters@quote('creator')} = #{${prefix}creator}
+        </if>
+        <if test="_record.relationScope != null">
+            <bind name="_scope" value="_record.relationScope"/>
+            AND EXISTS (
+            SELECT 1
+            FROM ${@com.lingan.ucp.nocode.runtime.dal.support.RuntimeSqlParameters@quote(_scope.schema)}.${@com.lingan.ucp.nocode.runtime.dal.support.RuntimeSqlParameters@quote(_scope.table)} link
+            WHERE link.deleted = 0
+            AND link.${@com.lingan.ucp.nocode.runtime.dal.support.RuntimeSqlParameters@quote(_scope.matchingColumn)}::text = ${alias}.${@com.lingan.ucp.nocode.runtime.dal.support.RuntimeSqlParameters@quote(_record.keyColumn)}::text
+            AND link.${@com.lingan.ucp.nocode.runtime.dal.support.RuntimeSqlParameters@quote(_scope.contextColumn)}::text = #{${prefix}relationScope.contextId}
+            )
+        </if>
+        <foreach collection="_record.filterColumns" item="_conditionColumn">
+            AND ${alias}.${@com.lingan.ucp.nocode.runtime.dal.support.RuntimeSqlParameters@quote(_conditionColumn)} IS NOT DISTINCT FROM (
+            jsonb_populate_record(NULL::
+            <include refid="com.lingan.ucp.nocode.runtime.dal.mapper.RecordMapper.recordTable"/>
+            , CAST(#{${prefix}filters} AS jsonb))
+            ).${@com.lingan.ucp.nocode.runtime.dal.support.RuntimeSqlParameters@quote(_conditionColumn)}
+        </foreach>
+        <if test="_record.search != null and !_record.textFields.isEmpty()">
+            AND (
+            <foreach collection="_record.textFields" item="_conditionColumn" separator=" OR ">
+                ${alias}.${@com.lingan.ucp.nocode.runtime.dal.support.RuntimeSqlParameters@quote(_conditionColumn)}::text ILIKE #{${prefix}search} ESCAPE '!'
+            </foreach>
+            )
+        </if>
+        <!--
+            既有底座 QueryWrapper 条件仍来自服务端白名单编译；这里只适配嵌套参数路径和表别名。
+            业务条件片段本身在后续职责提取中迁移，不接收客户端 SQL。
+        -->
+        <if test="_record.dynamicQuery != null and !_record.dynamicQuery.sqlSegment.isBlank()">
+            <bind name="_parameterPrefix" value="${prefixExpression}"/>
+            <bind name="_alias" value="'${alias}.'"/>
+            AND (${_record.dynamicQuery.sqlSegment.replace('t.', _alias).replace('#{', '#{' + _parameterPrefix)})
+        </if>
+        <!-- 独立外层别名标记避免将报表子查询的 t 别名误替换；嵌套路径仍由静态 include 指定。 -->
+        <if test="_record.dashboardScope != null">
+            <bind name="_dashboardPrefix" value="${prefixExpression}"/>
+            <bind name="_dashboardAlias" value="'${alias}.'"/>
+            AND (${_record.dashboardScope.sql.replace('__dashboard_outer__.', _dashboardAlias).replace('#{', '#{' + _dashboardPrefix)})
+        </if>
+    </sql>
+
+    <!-- 固定元信息与字段值一起投影；每 40 个字段合并一组 JSON，兼容宽对象。 -->
+    <sql id="recordProjection">
+        <bind name="_record" value="${recordValue}"/>
+        <bind
+            name="_fieldGroups"
+            value="@com.lingan.ucp.nocode.runtime.dal.support.RuntimeSqlParameters@projectionGroups(_record)"/>
+        jsonb_build_object(
+            'id', t.${@com.lingan.ucp.nocode.runtime.dal.support.RuntimeSqlParameters@quote(_record.keyColumn)}::text,
+            'revision', md5(${revisionSource}::text),
+            'recordCreator', to_jsonb(t)-&gt;&gt;'creator',
+            'values',
+        <choose>
+            <when test="_fieldGroups.isEmpty()">'{}'::jsonb</when>
+            <otherwise>
+                <foreach collection="_fieldGroups" item="_fields" separator=" || ">
+                    jsonb_build_object(
+                    <foreach collection="_fields" item="_field" separator=",">
+                            '${_field.id}', t.${@com.lingan.ucp.nocode.runtime.dal.support.RuntimeSqlParameters@quote(_field.column)}
+                        <if test="_record.numericFields.contains(_field.column)">::text</if>
+                    </foreach>
+                    )
+                </foreach>
+            </otherwise>
+        </choose>
+        )::text
+    </sql>
+
+    <sql id="relationTable">
+        <bind name="_relation" value="${relationValue}"/>
+        ${@com.lingan.ucp.nocode.runtime.dal.support.RuntimeSqlParameters@quote(_relation.schema)}.${@com.lingan.ucp.nocode.runtime.dal.support.RuntimeSqlParameters@quote(_relation.table)}
+    </sql>
+
+    <select id="summaries" parameterType="com.lingan.ucp.nocode.runtime.dal.query.SummaryStatement" resultType="java.lang.String">
+        SELECT jsonb_build_object(
+            'parent', ${@com.lingan.ucp.nocode.runtime.dal.support.RuntimeSqlParameters@quote(parentColumn)}::text,
+            'value', ${operation.name()}(
+        <choose>
+            <when test="operation.name() == 'COUNT'">*</when>
+            <otherwise>${@com.lingan.ucp.nocode.runtime.dal.support.RuntimeSqlParameters@quote(column)}</otherwise>
+        </choose>
+        )::text
+        )::text
+        FROM ${@com.lingan.ucp.nocode.runtime.dal.support.RuntimeSqlParameters@quote(schema)}.${@com.lingan.ucp.nocode.runtime.dal.support.RuntimeSqlParameters@quote(table)}
+        WHERE ${@com.lingan.ucp.nocode.runtime.dal.support.RuntimeSqlParameters@quote(parentColumn)}::text IN (
+        SELECT jsonb_array_elements_text(CAST(#{parents} AS jsonb))
+        )
+        <if test="logicalDelete">AND deleted::text IN ('0','false')</if>
+        GROUP BY ${@com.lingan.ucp.nocode.runtime.dal.support.RuntimeSqlParameters@quote(parentColumn)}
+    </select>
+
+    <select
+        id="relationTargets"
+        parameterType="com.lingan.ucp.nocode.runtime.dal.query.RelationStatement"
+        resultType="java.lang.String"
+        useCache="false"
+        flushCache="true">
+        SELECT target_id::text
+        FROM
+        <include refid="com.lingan.ucp.nocode.runtime.dal.mapper.RecordMapper.relationTable">
+            <property name="relationValue" value="_parameter"/>
+        </include>
+        WHERE deleted = 0 AND source_id::text = #{sourceId}
+        ORDER BY target_id LIMIT 501
+    </select>
+
+    <select
+        id="relationBatchTargets"
+        parameterType="org.apache.ibatis.binding.MapperMethod$ParamMap"
+        resultType="java.lang.String"
+        useCache="false"
+        flushCache="true">
+        SELECT jsonb_build_object('source', source_id::text, 'target', target_id::text)::text
+        FROM
+        <include refid="com.lingan.ucp.nocode.runtime.dal.mapper.RecordMapper.relationTable">
+            <property name="relationValue" value="relation"/>
+        </include>
+        WHERE deleted = 0 AND source_id::text IN (SELECT jsonb_array_elements_text(CAST(#{ids} AS jsonb)))
+        ORDER BY source_id, target_id
+    </select>
+
+    <select
+        id="relationSources"
+        parameterType="com.lingan.ucp.nocode.runtime.dal.query.RelationStatement"
+        resultType="java.lang.String">
+        SELECT r.source_id::text
+        FROM
+        <include refid="com.lingan.ucp.nocode.runtime.dal.mapper.RecordMapper.relationTable">
+            <property name="relationValue" value="_parameter"/>
+        </include>
+        r
+        JOIN ${@com.lingan.ucp.nocode.runtime.dal.support.RuntimeSqlParameters@quote(sourceSchema)}.${@com.lingan.ucp.nocode.runtime.dal.support.RuntimeSqlParameters@quote(sourceTable)} t
+        ON t.${@com.lingan.ucp.nocode.runtime.dal.support.RuntimeSqlParameters@quote(sourceKey)} = r.source_id
+        WHERE r.deleted = 0 AND COALESCE(to_jsonb(t)-&gt;&gt;'deleted','0') IN ('0','false')
+        AND r.target_id::text = #{targetId}
+        ORDER BY r.source_id LIMIT 501
+    </select>
+
+    <!-- 解除后再次关联复用原唯一关系行，保持 BaseDO 审计与逻辑删除语义。 -->
+    <insert id="attach" parameterType="com.lingan.ucp.nocode.runtime.dal.query.RelationStatement">
+        INSERT INTO
+        <include refid="com.lingan.ucp.nocode.runtime.dal.mapper.RecordMapper.relationTable">
+            <property name="relationValue" value="_parameter"/>
+        </include>
+        (source_id, target_id, creator, updater, create_time, update_time, deleted)
+        SELECT r.source_id, r.target_id, #{actor}, #{actor}, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 0
+        FROM jsonb_populate_record(NULL::
+        <include refid="com.lingan.ucp.nocode.runtime.dal.mapper.RecordMapper.relationTable">
+            <property name="relationValue" value="_parameter"/>
+        </include>
+        , CAST(#{payload} AS jsonb)) r
+        ON CONFLICT (source_id, target_id) DO UPDATE
+        SET deleted = 0, updater = #{actor}, update_time = clock_timestamp()
+    </insert>
+
+    <update id="detach" parameterType="com.lingan.ucp.nocode.runtime.dal.query.RelationStatement">
+        UPDATE
+        <include refid="com.lingan.ucp.nocode.runtime.dal.mapper.RecordMapper.relationTable">
+            <property name="relationValue" value="_parameter"/>
+        </include>
+        SET deleted = 1, updater = #{actor}, update_time = clock_timestamp()
+        WHERE deleted = 0 AND source_id::text = #{sourceId}
+        <if test="targetId != null">AND target_id::text = #{targetId}</if>
+    </update>
+
+    <select
+        id="rows"
+        parameterType="com.lingan.ucp.nocode.runtime.dal.query.RecordStatement"
+        resultType="java.lang.String"
+        useCache="false"
+        flushCache="true">
+        SELECT
+        <include refid="com.lingan.ucp.nocode.runtime.dal.mapper.RecordMapper.recordProjection">
+            <property name="recordValue" value="_parameter"/>
+            <property name="revisionSource" value="to_jsonb(t)"/>
+        </include>
+        FROM
+        <include refid="com.lingan.ucp.nocode.runtime.dal.mapper.RecordMapper.recordTable">
+            <property name="recordValue" value="_parameter"/>
+        </include>
+        t
+        <include refid="com.lingan.ucp.nocode.runtime.dal.mapper.RecordMapper.recordWhere">
+            <property name="recordValue" value="_parameter"/>
+            <property name="prefix" value=""/>
+            <property name="prefixExpression" value="''"/>
+            <property name="alias" value="t"/>
+        </include>
+        ORDER BY t.${@com.lingan.ucp.nocode.runtime.dal.support.RuntimeSqlParameters@quote(sortColumn == null ? keyColumn : sortColumn)}
+        <choose>
+            <when test="descending">DESC</when>
+            <otherwise>ASC</otherwise>
+        </choose>
+        ,
+        t.${@com.lingan.ucp.nocode.runtime.dal.support.RuntimeSqlParameters@quote(keyColumn)} ASC
+        LIMIT #{limit} OFFSET #{offset}
+        <if test="lock">FOR UPDATE</if>
+    </select>
+
+    <!-- 有序派生仅接受数据库已读出的主键；不改变普通外部 ID 字符串匹配语义。 -->
+    <sql id="orderedIdentity">
+        <bind name="_orderedIdentity" value="@com.lingan.ucp.nocode.runtime.dal.support.RuntimeSqlParameters@requireOrderedIdentity(_parameter)"/>
+        WHERE t.${@com.lingan.ucp.nocode.runtime.dal.support.RuntimeSqlParameters@quote(keyColumn)} = (
+            jsonb_populate_record(NULL::
+            <include refid="recordTable"><property name="recordValue" value="_parameter"/></include>,
+            jsonb_build_object(CAST(#{keyColumn} AS text), CAST(#{id} AS text)))
+        ).${@com.lingan.ucp.nocode.runtime.dal.support.RuntimeSqlParameters@quote(keyColumn)}
+        <if test="deletedColumn">
+            AND t.${@com.lingan.ucp.nocode.runtime.dal.support.RuntimeSqlParameters@quote('deleted')}::text IN ('0','false')
+        </if>
+    </sql>
+
+    <select id="orderedRows" parameterType="com.lingan.ucp.nocode.runtime.dal.query.RecordStatement"
+            resultType="java.lang.String" useCache="false" flushCache="true">
+        SELECT
+        <include refid="recordProjection">
+            <property name="recordValue" value="_parameter"/>
+            <property name="revisionSource" value="to_jsonb(t)"/>
+        </include>
+        FROM <include refid="recordTable"><property name="recordValue" value="_parameter"/></include> t
+        <include refid="orderedIdentity"/>
+        <if test="lock">FOR UPDATE</if>
+    </select>
+
+    <select id="count" parameterType="com.lingan.ucp.nocode.runtime.dal.query.RecordStatement" resultType="_long">
+        SELECT count(*) FROM
+        <include refid="com.lingan.ucp.nocode.runtime.dal.mapper.RecordMapper.recordTable">
+            <property name="recordValue" value="_parameter"/>
+        </include>
+        t
+        <include refid="com.lingan.ucp.nocode.runtime.dal.mapper.RecordMapper.recordWhere">
+            <property name="recordValue" value="_parameter"/>
+            <property name="prefix" value=""/>
+            <property name="prefixExpression" value="''"/>
+            <property name="alias" value="t"/>
+        </include>
+    </select>
+
+    <select id="orderedGroups" parameterType="com.lingan.ucp.nocode.runtime.dal.query.OrderedGroupStatement"
+            resultType="java.lang.String" useCache="false" flushCache="true">
+        SELECT jsonb_build_object('values', group_values, 'rows', count(*),
+            'nullRows', count(*) FILTER (WHERE missing_value))::text
+        FROM (
+            SELECT jsonb_build_array(
+                <foreach collection="columns" item="column" separator=",">
+                    t.${@com.lingan.ucp.nocode.runtime.dal.support.RuntimeSqlParameters@quote(column)}
+                </foreach>
+            ) AS group_values,
+            t.${@com.lingan.ucp.nocode.runtime.dal.support.RuntimeSqlParameters@quote(outputColumn)} IS NULL AS missing_value
+            FROM <include refid="recordTable"><property name="recordValue" value="record"/></include> t
+            <include refid="recordWhere">
+                <property name="recordValue" value="record"/>
+                <property name="prefix" value="record."/>
+                <property name="prefixExpression" value="'record.'"/>
+                <property name="alias" value="t"/>
+            </include>
+        ) grouped GROUP BY group_values ORDER BY group_values
+    </select>
+
+    <sql id="calculationSource">
+        WITH calculation_source AS (
+            SELECT t.* FROM
+            <include refid="com.lingan.ucp.nocode.runtime.dal.mapper.RecordMapper.recordTable">
+                <property name="recordValue" value="record"/>
+            </include> t
+            <if test="candidatePayload != null">
+                WHERE t.${@com.lingan.ucp.nocode.runtime.dal.support.RuntimeSqlParameters@quote(record.keyColumn)}::text != #{candidateId}
+                UNION ALL
+                SELECT r.* FROM jsonb_populate_record(NULL::
+                <include refid="com.lingan.ucp.nocode.runtime.dal.mapper.RecordMapper.recordTable">
+                    <property name="recordValue" value="record"/>
+                </include>, CAST(#{candidatePayload} AS jsonb)) r
+            </if>
+        )
+    </sql>
+
+    <select id="statistics" parameterType="com.lingan.ucp.nocode.runtime.dal.query.TableCalculationStatement"
+            resultType="java.lang.String" useCache="false" flushCache="true">
+        <include refid="calculationSource"/>
+        SELECT
+        <choose>
+            <when test="aggregate.name() == 'COUNT'">COUNT(*)</when>
+            <when test="aggregate.name() == 'SUM'">COALESCE(SUM(t.${@com.lingan.ucp.nocode.runtime.dal.support.RuntimeSqlParameters@quote(column)}), 0)</when>
+            <when test="aggregate.name() == 'AVG'">AVG(t.${@com.lingan.ucp.nocode.runtime.dal.support.RuntimeSqlParameters@quote(column)})</when>
+            <when test="aggregate.name() == 'MIN'">MIN(t.${@com.lingan.ucp.nocode.runtime.dal.support.RuntimeSqlParameters@quote(column)})</when>
+            <when test="aggregate.name() == 'MAX'">MAX(t.${@com.lingan.ucp.nocode.runtime.dal.support.RuntimeSqlParameters@quote(column)})</when>
+        </choose>::text
+        FROM calculation_source t
+        <include refid="com.lingan.ucp.nocode.runtime.dal.mapper.RecordMapper.recordWhere">
+            <property name="recordValue" value="record"/>
+            <property name="prefix" value="record."/>
+            <property name="prefixExpression" value="'record.'"/>
+            <property name="alias" value="t"/>
+        </include>
+    </select>
+
+    <sql id="runningTotalCalculation">
+        <include refid="calculationSource"/>
+        , calculated AS (
+            SELECT COALESCE(t.${@com.lingan.ucp.nocode.runtime.dal.support.RuntimeSqlParameters@quote(record.keyColumn)}::text, #{candidateId}) AS calculation_id,
+                (
+                <choose>
+                    <when test="initialColumn != null">
+                        COALESCE(FIRST_VALUE(t.${@com.lingan.ucp.nocode.runtime.dal.support.RuntimeSqlParameters@quote(initialColumn)}) OVER calculation_order, 0)
+                    </when>
+                    <otherwise>CAST(#{initialValue} AS numeric)</otherwise>
+                </choose>
+                + SUM(COALESCE(t.${@com.lingan.ucp.nocode.runtime.dal.support.RuntimeSqlParameters@quote(column)}::numeric, 0)
+                <if test="subtractColumn != null">
+                    - COALESCE(t.${@com.lingan.ucp.nocode.runtime.dal.support.RuntimeSqlParameters@quote(subtractColumn)}::numeric, 0)
+                </if>) OVER calculation_order)::text AS calculation_value
+            FROM calculation_source t
+            <include refid="com.lingan.ucp.nocode.runtime.dal.mapper.RecordMapper.recordWhere">
+                <property name="recordValue" value="record"/>
+                <property name="prefix" value="record."/>
+                <property name="prefixExpression" value="'record.'"/>
+                <property name="alias" value="t"/>
+            </include>
+            WINDOW calculation_order AS (
+                ORDER BY
+                <foreach collection="orderColumns" item="orderColumn" separator=",">
+                    t.${@com.lingan.ucp.nocode.runtime.dal.support.RuntimeSqlParameters@quote(orderColumn)} ASC NULLS LAST
+                </foreach>
+                ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+            )
+        )
+    </sql>
+
+    <select id="runningTotal" parameterType="com.lingan.ucp.nocode.runtime.dal.query.TableCalculationStatement" resultType="java.lang.String" useCache="false" flushCache="true">
+        <include refid="runningTotalCalculation"/>
+        SELECT calculation_value FROM calculated WHERE calculation_id = #{rowId}
+    </select>
+
+    <select id="runningTotals" parameterType="com.lingan.ucp.nocode.runtime.dal.query.TableCalculationStatement" resultType="java.lang.String" useCache="false" flushCache="true">
+        <include refid="runningTotalCalculation"/>
+        SELECT jsonb_build_object('id', calculation_id, 'value', calculation_value)::text FROM calculated
+    </select>
+
+    <select id="sequenceValues" parameterType="com.lingan.ucp.nocode.runtime.dal.query.TableCalculationStatement"
+            resultType="java.lang.String" useCache="false" flushCache="true">
+        <include refid="calculationSource"/>
+        , calculated AS (
+            SELECT t.${@com.lingan.ucp.nocode.runtime.dal.support.RuntimeSqlParameters@quote(record.keyColumn)}::text AS calculation_id,
+                <choose>
+                    <when test="next">LEAD(to_jsonb(t)) OVER calculation_order</when>
+                    <otherwise>LAG(to_jsonb(t)) OVER calculation_order</otherwise>
+                </choose> AS sequence_values
+            FROM calculation_source t
+            <include refid="com.lingan.ucp.nocode.runtime.dal.mapper.RecordMapper.recordWhere">
+                <property name="recordValue" value="record"/>
+                <property name="prefix" value="record."/>
+                <property name="prefixExpression" value="'record.'"/>
+                <property name="alias" value="t"/>
+            </include>
+            WINDOW calculation_order AS (
+                ORDER BY
+                <foreach collection="orderColumns" item="orderColumn" separator=",">
+                    t.${@com.lingan.ucp.nocode.runtime.dal.support.RuntimeSqlParameters@quote(orderColumn)} ASC NULLS LAST
+                </foreach>
+            )
+        )
+        SELECT sequence_values::text FROM calculated WHERE calculation_id = #{rowId}
+    </select>
+
+    <!-- 相邻与累计共用同一稳定顺序；候选值替换旧行，分页/页面筛选不改变计算范围。 -->
+    <select id="sequenceRows" parameterType="com.lingan.ucp.nocode.runtime.dal.query.TableCalculationStatement"
+            resultType="java.lang.String" useCache="false" flushCache="true">
+        <include refid="calculationSource"/>
+        SELECT
+        <include refid="com.lingan.ucp.nocode.runtime.dal.mapper.RecordMapper.recordProjection">
+            <property name="recordValue" value="record"/>
+            <property name="revisionSource" value="to_jsonb(t)"/>
+        </include>
+        FROM calculation_source t
+        <include refid="com.lingan.ucp.nocode.runtime.dal.mapper.RecordMapper.recordWhere">
+            <property name="recordValue" value="record"/>
+            <property name="prefix" value="record."/>
+            <property name="prefixExpression" value="'record.'"/>
+            <property name="alias" value="t"/>
+        </include>
+        ORDER BY
+        <foreach collection="orderColumns" item="orderColumn" separator=",">
+            t.${@com.lingan.ucp.nocode.runtime.dal.support.RuntimeSqlParameters@quote(orderColumn)} ASC NULLS LAST
+        </foreach>
+        LIMIT 10001
+    </select>
+
+    <!-- RETURNING 仍是写操作：保留 affectData、缓存刷新和 Java 上的写权限拦截例外。 -->
+    <select
+        id="insert"
+        parameterType="com.lingan.ucp.nocode.runtime.dal.query.RecordStatement"
+        resultType="java.lang.String"
+        affectData="true"
+        flushCache="true"
+        useCache="true">
+        INSERT INTO
+        <include refid="com.lingan.ucp.nocode.runtime.dal.mapper.RecordMapper.recordTable">
+            <property name="recordValue" value="_parameter"/>
+        </include>
+        (
+        <foreach collection="columns" item="_column">
+            ${@com.lingan.ucp.nocode.runtime.dal.support.RuntimeSqlParameters@quote(_column)},
+        </foreach>
+        creator, updater, create_time, update_time, deleted
+        ) SELECT
+        <foreach collection="columns" item="_column">
+            r.${@com.lingan.ucp.nocode.runtime.dal.support.RuntimeSqlParameters@quote(_column)},
+        </foreach>
+        #{actor}, #{actor}, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 0
+        FROM jsonb_populate_record(NULL::
+        <include refid="com.lingan.ucp.nocode.runtime.dal.mapper.RecordMapper.recordTable">
+            <property name="recordValue" value="_parameter"/>
+        </include>
+        , CAST(#{payload} AS jsonb)) r
+        RETURNING ${@com.lingan.ucp.nocode.runtime.dal.support.RuntimeSqlParameters@quote(keyColumn)}::text
+    </select>
+
+    <sql id="recordUpdateValues">
+        UPDATE
+        <include refid="com.lingan.ucp.nocode.runtime.dal.mapper.RecordMapper.recordTable">
+            <property name="recordValue" value="_parameter"/>
+        </include>
+        t SET
+        <foreach collection="columns" item="_column">
+            ${@com.lingan.ucp.nocode.runtime.dal.support.RuntimeSqlParameters@quote(_column)} = r.${@com.lingan.ucp.nocode.runtime.dal.support.RuntimeSqlParameters@quote(_column)},
+        </foreach>
+        updater = #{actor}, update_time = clock_timestamp()
+        FROM jsonb_populate_record(NULL::
+        <include refid="com.lingan.ucp.nocode.runtime.dal.mapper.RecordMapper.recordTable">
+            <property name="recordValue" value="_parameter"/>
+        </include>
+        , CAST(#{payload} AS jsonb)) r
+    </sql>
+
+    <update id="update" parameterType="com.lingan.ucp.nocode.runtime.dal.query.RecordStatement">
+        <include refid="recordUpdateValues"/>
+        <include refid="com.lingan.ucp.nocode.runtime.dal.mapper.RecordMapper.recordWhere">
+            <property name="recordValue" value="_parameter"/>
+            <property name="prefix" value=""/>
+            <property name="prefixExpression" value="''"/>
+            <property name="alias" value="t"/>
+        </include>
+    </update>
+
+    <update id="orderedUpdate" parameterType="com.lingan.ucp.nocode.runtime.dal.query.RecordStatement">
+        <include refid="recordUpdateValues"/>
+        <include refid="orderedIdentity"/>
+    </update>
+
+    <update id="delete" parameterType="com.lingan.ucp.nocode.runtime.dal.query.RecordStatement">
+        UPDATE
+        <include refid="com.lingan.ucp.nocode.runtime.dal.mapper.RecordMapper.recordTable">
+            <property name="recordValue" value="_parameter"/>
+        </include>
+        t
+        SET deleted = 1, updater = #{actor}, update_time = clock_timestamp()
+        <include refid="com.lingan.ucp.nocode.runtime.dal.mapper.RecordMapper.recordWhere">
+            <property name="recordValue" value="_parameter"/>
+            <property name="prefix" value=""/>
+            <property name="prefixExpression" value="''"/>
+            <property name="alias" value="t"/>
+        </include>
+    </update>
+</mapper>

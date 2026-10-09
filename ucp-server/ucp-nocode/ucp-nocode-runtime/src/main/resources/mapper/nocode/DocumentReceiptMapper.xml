@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!-- 整单保存幂等收据；事务锁和读取缓存策略保持原有语义。 -->
+<mapper namespace="com.lingan.ucp.nocode.runtime.dal.mapper.DocumentReceiptMapper">
+
+    <select
+            id="lock"
+            parameterType="java.lang.String"
+            resultType="java.lang.String"
+            useCache="true"
+            flushCache="false">
+        SELECT pg_advisory_xact_lock(7422, hashtext(#{key}))
+    </select>
+
+    <select
+            id="find"
+            parameterType="org.apache.ibatis.binding.MapperMethod$ParamMap"
+            resultType="com.lingan.ucp.nocode.runtime.dal.dataobject.DocumentReceiptDO"
+            useCache="false"
+            flushCache="true">
+        SELECT *, operation_id::text AS operation_id, result_json::text AS result_json
+        FROM public.nocode_document_receipt
+        WHERE creator = #{actor}
+        AND application_id IS NOT DISTINCT FROM CAST(#{app} AS bigint)
+        AND object_id = CAST(#{object} AS bigint)
+        AND operation = #{operation}
+        AND request_key = #{key}
+        AND deleted = 0
+    </select>
+
+    <insert
+            id="append"
+            parameterType="org.apache.ibatis.binding.MapperMethod$ParamMap"
+            flushCache="true">
+        INSERT INTO public.nocode_document_receipt(application_id, object_id, operation, request_key, request_digest,
+            operation_id, record_id, record_revision, policy_version, result_json, creator, updater)
+        VALUES (#{row.applicationId}, #{row.objectId}, #{row.operation}, #{row.requestKey}, #{row.requestDigest}, CAST(#{row.operationId} AS uuid),
+            #{row.recordId}, #{row.recordRevision}, #{row.policyVersion}, CAST(#{row.resultJson} AS jsonb), #{actor},
+            #{actor})
+    </insert>
+
+</mapper>

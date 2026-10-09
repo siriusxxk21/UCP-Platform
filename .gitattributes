@@ -1,4 +1,4 @@
 # Preserve pg_dump COPY rows, including empty trailing columns, exactly as exported.
-os-server/sql/full/*.sql -text whitespace=-blank-at-eol,-blank-at-eof
+ucp-server/sql/full/*.sql -text whitespace=-blank-at-eol,-blank-at-eof
 # Versioned SQL is sealed byte-for-byte; do not convert line endings on checkout.
-os-server/sql/postgresql/migrations/*.sql -text
+ucp-server/sql/postgresql/migrations/*.sql -text

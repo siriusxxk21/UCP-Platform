@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lingan.ucp.nocode.runtime.dal.RuntimeConditionFragments">
+    <!-- 这些片段只由 RuntimeConditionSql 从当前 MyBatis 配置渲染，再交给底座 QueryWrapper。
+         {0} 是 QueryWrapper 的值占位符，不是客户端 SQL；普通查询算子仍复用底座处理器。 -->
+    <sql id="FIELD">${alias}.${column}<if test="text">::text</if></sql>
+    <sql id="CREATOR">${alias}.creator::text</sql>
+    <sql id="ALWAYS_FALSE">1=0</sql>
+    <sql id="ALWAYS_TRUE">1=1</sql>
+    <sql id="CONTAINS_ANY">
+        EXISTS (SELECT 1 FROM jsonb_array_elements_text(${column}<if test="castJson">::jsonb</if>) v
+        WHERE v.value IN (SELECT jsonb_array_elements_text(CAST({0} AS jsonb))))
+    </sql>
+    <sql id="CONTAINS_ALL">${column} @&gt; CAST({0} AS jsonb)</sql>
+    <sql id="MULTI_EQUALS">(${column} @&gt; CAST({0} AS jsonb) AND ${column} &lt;@ CAST({0} AS jsonb))</sql>
+    <sql id="MULTI_NOT_EQUALS">NOT (${column} @&gt; CAST({0} AS jsonb) AND ${column} &lt;@ CAST({0} AS jsonb))</sql>
+    <!-- 对象规则（引用筛选、数据联动）的空值口径：不等于对空值安全；文本形态列的空串、多选的空数组都算空。 -->
+    <sql id="DISTINCT_FROM">${column} IS DISTINCT FROM {0}</sql>
+    <sql id="BLANK_TEXT">(${column} IS NULL OR ${column} = '')</sql>
+    <sql id="NOT_BLANK_TEXT">(${column} IS NOT NULL AND ${column} &lt;&gt; '')</sql>
+    <sql id="EMPTY_LIST">
+        COALESCE(CASE WHEN jsonb_typeof(${column}) = 'array' THEN jsonb_array_length(${column}) END, 0) = 0
+    </sql>
+    <sql id="NOT_EMPTY_LIST">
+        COALESCE(CASE WHEN jsonb_typeof(${column}) = 'array' THEN jsonb_array_length(${column}) END, 0) &gt; 0
+    </sql>
+    <sql id="SCOPE_SCALAR">
+        ${column} ${operator} (jsonb_populate_record(NULL::${schema}.${table},CAST({0} AS jsonb))).${name}
+    </sql>
+    <sql id="FIXED_SCALAR">
+        ${column} IS NOT DISTINCT FROM (jsonb_populate_record(NULL::${schema}.${table},CAST({0} AS jsonb))).${name}
+    </sql>
+    <sql id="FIXED_RELATION">
+        EXISTS (SELECT 1 FROM ${schema}.${table} l WHERE l.deleted=0 AND l.source_id::text=t.${key}::text
+        AND l.target_id::text IN (SELECT jsonb_array_elements_text(CAST({0} AS jsonb))))
+    </sql>
+    <sql id="RELATION_FILTER">
+        EXISTS (SELECT 1 FROM ${schema}.${table} r WHERE r.deleted=0 AND r.source_id=t.${key}
+        AND r.target_id::text IN (SELECT jsonb_array_elements_text(CAST({0} AS jsonb))))
+    </sql>
+    <sql id="CALCULATION_RELATION">
+        EXISTS (SELECT 1 FROM ${schema}.${table} l WHERE l.deleted=0 AND l.source_id::text={0} AND l.target_id=t.${key})
+    </sql>
+    <!-- 统计下钻：主键属于 report-details 同一条件构造得到的记录集（{0} 为主键 JSON 数组）。 -->
+    <sql id="KEY_IN">t.${key}::text IN (SELECT jsonb_array_elements_text(CAST({0} AS jsonb)))</sql>
+    <!-- source 只来自当前 MyBatis ReportMapper.keys 的受控编译结果，不执行或物化主键集合。 -->
+    <sql id="REPORT_ROOT_SCOPE">
+        EXISTS (SELECT 1 FROM (${source}) dashboard_scope(record_id)
+            WHERE dashboard_scope.record_id = __dashboard_outer__.${key}::text)
+    </sql>
+    <sql id="CORRELATION_EQUAL">t.${column}=r.${rootColumn}</sql>
+    <sql id="CORRELATION_LINK">
+        EXISTS (SELECT 1 FROM ${schema}.${table} l WHERE l.deleted=0 AND
+        <choose>
+            <when test="incoming">l.source_id=t.${key} AND l.target_id=r.${rootKey}</when>
+            <otherwise>l.target_id=t.${key} AND l.source_id=r.${rootKey}</otherwise>
+        </choose>
+        )
+    </sql>
+</mapper>

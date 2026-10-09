@@ -1,0 +1,3 @@
+com.lingan.ucp.framework.security.config.OsSecurityAutoConfiguration
+com.lingan.ucp.framework.security.config.OsWebSecurityConfigurerAdapter
+com.lingan.ucp.framework.operatelog.config.OsOperateLogConfiguration

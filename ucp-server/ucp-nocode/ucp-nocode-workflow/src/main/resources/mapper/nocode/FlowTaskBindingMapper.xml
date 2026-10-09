@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!-- 流程任务与固定业务资源绑定；保留登记锁及版本定位规则。 -->
+<mapper namespace="com.lingan.ucp.nocode.workflow.dal.mapper.task.FlowTaskBindingMapper">
+
+    <select
+            id="read"
+            parameterType="java.lang.String"
+            resultType="com.lingan.ucp.nocode.workflow.dal.dataobject.task.FlowTaskBindingDO"
+            useCache="true"
+            flushCache="false">
+        SELECT *
+        FROM public.nocode_flow_task_binding
+        WHERE task_id = #{taskId}
+        AND deleted = 0
+    </select>
+
+    <select
+            id="lock"
+            parameterType="java.lang.String"
+            resultType="java.lang.Integer"
+            useCache="false"
+            flushCache="true">
+        SELECT 1
+        FROM pg_advisory_xact_lock(hashtextextended(#{key}, 0))
+    </select>
+
+    <select
+            id="get"
+            parameterType="java.lang.String"
+            resultType="com.lingan.ucp.nocode.workflow.dal.dataobject.task.FlowTaskBindingDO"
+            useCache="true"
+            flushCache="false">
+        SELECT *
+        FROM public.nocode_flow_task_binding
+        WHERE task_id = #{taskId}
+        AND deleted = 0
+        FOR UPDATE
+    </select>
+
+    <insert
+            id="create"
+            parameterType="org.apache.ibatis.binding.MapperMethod$ParamMap"
+            flushCache="true">
+        INSERT INTO public.nocode_flow_task_binding(task_id, task_json, creator, updater)
+        VALUES (#{taskId}, CAST(#{taskJson} AS jsonb), #{actor}, #{actor})
+    </insert>
+
+    <update
+            id="submitted"
+            parameterType="org.apache.ibatis.binding.MapperMethod$ParamMap"
+            flushCache="true">
+        UPDATE public.nocode_flow_task_binding
+        SET submission_id = #{material}, submitter = #{actor}, request_digest = #{digest}, updater = #{actor},
+        update_time = clock_timestamp()
+        WHERE task_id = #{taskId}
+        AND deleted = 0
+        AND submission_id IS NULL
+    </update>
+
+</mapper>

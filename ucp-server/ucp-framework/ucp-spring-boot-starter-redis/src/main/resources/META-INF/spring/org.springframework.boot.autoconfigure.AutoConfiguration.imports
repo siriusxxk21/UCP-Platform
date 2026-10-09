@@ -1,0 +1,2 @@
+com.lingan.ucp.framework.redis.config.OsRedisAutoConfiguration
+com.lingan.ucp.framework.redis.config.OsCacheAutoConfiguration

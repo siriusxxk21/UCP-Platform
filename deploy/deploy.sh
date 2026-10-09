@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
-# Linux 一键部署。上传到 /opt/os-server/deploy/deploy.sh 后执行。
+# Linux 一键部署。上传到 /opt/ucp-server/deploy/deploy.sh 后执行。
 set -Eeuo pipefail
 
 # ==================== 用户配置 ====================
-BASE_DIR="/opt/os-server"
+BASE_DIR="/opt/ucp-server"
 REPO_URL="${OS_REPO_URL:-git@github.com:siriusxxk21/---.git}"
 BRANCH="${OS_BRANCH:-dev}"
-JAR_PATH="/opt/os-server/backend/os.jar"
-DIST_DIR="/opt/os-server/frontend" # 此目录本身就是 dist 的内容，不再追加 /dist
+JAR_PATH="/opt/ucp-server/backend/os.jar"
+DIST_DIR="/opt/ucp-server/frontend" # 此目录本身就是 dist 的内容，不再追加 /dist
 APP_PORT=${OS_APP_PORT:-18080}     # 与 config 中的端口一致；不覆盖应用监听配置
 APP_WORK_DIR=""                   # 留空使用 JAR 所在目录
 CONFIG_DIR=""                     # 留空使用 APP_WORK_DIR/config；不创建或覆盖配置
@@ -28,7 +28,7 @@ within() { [[ "$1" == "$2" || "$1" == "$2/"* ]]; }
 
 usage() {
     cat <<'EOF'
-用法：bash /opt/os-server/deploy/deploy.sh [check|deploy|status|stop|start]
+用法：bash /opt/ucp-server/deploy/deploy.sh [check|deploy|status|stop|start]
   check   检查路径、外置配置、构建工具、端口和 Git 读取权限；不构建、不启停、不连接数据库
   deploy  拉取指定分支、构建、日期备份、停止、替换、启动；失败自动恢复旧包（默认）
   status  查看脚本管理的 Java 进程
@@ -346,15 +346,15 @@ build_release() {
     BUILD_DIR=$(mktemp -d "$BUILD_ROOT/$RUN_ID.XXXXXX")
     # 在独立目录构建，不让 Vite 生成文件污染 code；打包内容固定到本次提交。
     git -C "$CODE_DIR" archive "$COMMIT" | tar -xf - -C "$BUILD_DIR"
-    local server="$BUILD_DIR/richuang-os/os-server" front="$BUILD_DIR/richuang-os/os-front"
+    local server="$BUILD_DIR/richuang-os/ucp-server" front="$BUILD_DIR/richuang-os/ucp-front"
     [[ -f "$server/pom.xml" && -f "$front/pnpm-lock.yaml" ]] || die "项目目录不完整"
     if [[ -f "$server/sql/check-migrations.mjs" ]]; then
         log "仅校验迁移文件目录和锁清单，不连接数据库、不执行 SQL"
         node "$server/sql/check-migrations.mjs"
     fi
     log "构建后端，提交 $COMMIT"
-    (cd "$server" && mvn -B -Dmaven.test.skip=true -pl os-server -am clean package)
-    BUILD_JAR="$server/os-server/target/os.jar"
+    (cd "$server" && mvn -B -Dmaven.test.skip=true -pl ucp-server -am clean package)
+    BUILD_JAR="$server/ucp-server/target/os.jar"
     [[ -s "$BUILD_JAR" ]] || die "未找到 Spring Boot JAR：$BUILD_JAR"
     jar tf "$BUILD_JAR" > "$BUILD_DIR/jar-entries.txt"
     grep -q '^BOOT-INF/classes/' "$BUILD_DIR/jar-entries.txt" || die "产物不是可执行 Spring Boot JAR"

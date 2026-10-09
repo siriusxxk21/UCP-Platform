@@ -1,0 +1,18 @@
+{
+  "com.lingan.ucp.nocode.application.dal.ApplicationMapper.runnableIds" : {
+    "command" : "SELECT",
+    "flushCache" : false,
+    "affectData" : false,
+    "timeout" : null,
+    "statementType" : "PREPARED",
+    "resultSetType" : "DEFAULT",
+    "keyGenerator" : "NoKeyGenerator",
+    "keyProperties" : null,
+    "keyColumns" : null,
+    "useCache" : true,
+    "resultTypes" : [ "java.lang.String" ],
+    "cases" : [ "c03daacd8b231cfe5cd73df6186a63e8b01026de6637a20eaa7d56bb27689af0" ],
+    "sqlTemplate" : "SELECT id::text FROM public.nocode_application WHERE deleted=0 AND status='ACTIVE' AND published_version IS NOT NULL ORDER BY app_name,id",
+    "parameterType" : null
+  }
+}

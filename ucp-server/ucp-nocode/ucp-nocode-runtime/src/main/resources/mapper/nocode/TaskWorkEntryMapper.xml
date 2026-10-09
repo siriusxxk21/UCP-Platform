@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lingan.ucp.nocode.runtime.dal.mapper.TaskWorkEntryMapper">
+ <update id="freezeRules">UPDATE public.nocode_task_entry_record f
+ SET work_rule_json=coalesce(b.config_json::jsonb-&gt;'workRule','null'::jsonb)::text
+ FROM public.nocode_task_entry_binding b JOIN public.nocode_task_instance t ON t.id=b.task_id
+ WHERE t.root_id=#{root} AND f.task_id=b.task_id AND f.entry_key=b.entry_key AND f.work_rule_json IS NULL</update>
+ <update id="changeWorkRule">UPDATE public.nocode_task_entry_binding
+ SET config_json=jsonb_set(config_json::jsonb,'{workRule}',CAST(#{rule} AS jsonb))::text,
+ updater=#{actor},update_time=now() WHERE id=#{id} AND deleted=0</update>
+ <select id="template" resultType="com.lingan.ucp.nocode.runtime.dal.dataobject.TaskWorkEntryTemplateDO">SELECT * FROM public.nocode_task_entry_template_version WHERE template_id=#{id} AND version_no=#{version} AND deleted=0</select>
+ <insert id="publish">INSERT INTO public.nocode_task_entry_template_version(id,template_id,version_no,bindings_json,creator,updater) VALUES(#{row.id},#{row.templateId},#{row.versionNo},#{row.bindingsJson},#{actor},#{actor})</insert>
+ <select id="entries" resultType="com.lingan.ucp.nocode.runtime.dal.dataobject.TaskWorkEntryDO">SELECT * FROM public.nocode_task_entry_binding WHERE task_id=#{task} AND deleted=0 ORDER BY create_time,id</select>
+ <select id="entry" resultType="com.lingan.ucp.nocode.runtime.dal.dataobject.TaskWorkEntryDO">SELECT * FROM public.nocode_task_entry_binding WHERE task_id=#{task} AND entry_key=#{key} AND deleted=0</select>
+ <insert id="saveEntry">INSERT INTO public.nocode_task_entry_binding(id,task_id,entry_key,dataset_id,config_json,business_json,inherited,submitted_json,creator,updater)
+ VALUES(#{row.id},#{row.taskId},#{row.entryKey},#{row.datasetId},#{row.configJson},#{row.businessJson},#{row.inherited},#{row.submittedJson},#{actor},#{actor})
+ ON CONFLICT(task_id,entry_key) DO UPDATE SET dataset_id=excluded.dataset_id,config_json=excluded.config_json,business_json=excluded.business_json,inherited=excluded.inherited,submitted_json=excluded.submitted_json,updater=#{actor},update_time=now(),deleted=0</insert>
+ <update id="removeEntry">UPDATE public.nocode_task_entry_binding SET deleted=1,updater=#{actor},update_time=now() WHERE id=#{id}</update>
+ <select id="records" resultType="com.lingan.ucp.nocode.runtime.dal.dataobject.TaskWorkRecordDO">SELECT * FROM public.nocode_task_entry_record WHERE dataset_id=#{dataset} AND deleted=0 ORDER BY create_time DESC,id DESC</select>
+ <select id="receipt" resultType="com.lingan.ucp.nocode.runtime.dal.dataobject.TaskWorkRecordDO">SELECT * FROM public.nocode_task_entry_record WHERE creator=#{actor} AND request_key=#{key} AND deleted=0</select>
+ <select id="record" resultType="com.lingan.ucp.nocode.runtime.dal.dataobject.TaskWorkRecordDO">SELECT * FROM public.nocode_task_entry_record WHERE id=#{id} AND deleted=0</select>
+ <insert id="saveRecord">INSERT INTO public.nocode_task_entry_record(id,task_id,entry_key,dataset_id,business_json,operation,record_revision,snapshot_json,work_rule_json,request_key,request_hash,creator,updater)
+ VALUES(#{row.id},#{row.taskId},#{row.entryKey},#{row.datasetId},#{row.businessJson},#{row.operation},#{row.recordRevision},#{row.snapshotJson},#{row.workRuleJson},#{row.requestKey},#{row.requestHash},#{actor},#{actor})
+ ON CONFLICT(id) DO UPDATE SET business_json=excluded.business_json,record_revision=excluded.record_revision,snapshot_json=excluded.snapshot_json,updater=#{actor},update_time=now()</insert>
+ <select id="approvedRecord" resultType="string">SELECT r.record_id FROM public.nocode_task_entry_record e
+ JOIN public.nocode_handling_request r ON r.id::text=e.business_json::jsonb-&gt;&gt;'requestId'
+ WHERE e.id=#{id} AND e.deleted=0 AND r.deleted=0 AND r.status='APPROVED'
+ AND r.application_id::text=e.business_json::jsonb-&gt;'resource'-&gt;&gt;'applicationId'
+ AND r.application_version::text=e.business_json::jsonb-&gt;'resource'-&gt;&gt;'applicationVersion'
+ AND r.object_id::text=e.business_json::jsonb-&gt;'object'-&gt;&gt;'objectId'
+ AND r.creator=e.creator</select>
+ <update id="supersede">UPDATE public.nocode_task_entry_record SET superseded_by=#{next},updater=#{actor},update_time=now() WHERE id=#{id} AND superseded_by IS NULL AND deleted=0</update>
+ <select id="handlingContribution" resultType="com.lingan.ucp.nocode.runtime.dal.dataobject.TaskWorkRecordDO">
+ SELECT e.* FROM public.nocode_task_entry_record e
+ JOIN public.nocode_task_instance t ON t.id=e.task_id AND t.deleted=0
+ JOIN public.nocode_handling_request r ON r.id::text=e.business_json::jsonb-&gt;&gt;'requestId' AND r.deleted=0
+ WHERE e.deleted=0 AND e.creator=#{actor} AND r.creator=#{actor} AND t.assignee_id::text=#{actor}
+ AND r.id::text=#{request}
+ ORDER BY e.create_time DESC,e.id DESC LIMIT 1
+ </select>
+ <select id="requestRecords" resultType="com.lingan.ucp.nocode.runtime.dal.dataobject.TaskWorkRecordDO">
+ SELECT * FROM public.nocode_task_entry_record WHERE business_json::jsonb-&gt;&gt;'requestId'=#{request}
+ AND creator=#{actor} AND deleted=0 AND superseded_by IS NULL
+ </select>
+ <update id="unchanged">UPDATE public.nocode_task_entry_record SET operation='UNCHANGED',updater=#{actor},update_time=now()
+ WHERE id=#{id} AND creator=#{actor} AND deleted=0</update>
+ <update id="applied">UPDATE public.nocode_task_entry_record
+ SET snapshot_json=#{snapshot},record_revision=#{revision},updater=#{actor},update_time=now()
+ WHERE business_json::jsonb-&gt;&gt;'requestId'=#{request} AND creator=#{actor} AND deleted=0 AND superseded_by IS NULL
+ </update>
+</mapper>

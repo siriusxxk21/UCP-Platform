@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!-- 工作事件追加；来源、提交材料与审计操作者随事件一并持久化。 -->
+<mapper namespace="com.lingan.ucp.nocode.work.dal.mapper.event.WorkEventMapper">
+
+    <insert
+            id="append"
+            parameterType="org.apache.ibatis.binding.MapperMethod$ParamMap"
+            flushCache="true">
+        INSERT INTO public.nocode_work_event(id, event_type, source_type, source_id, submission_id, creator, updater)
+        VALUES (#{row.id}, #{row.eventType}, #{row.sourceType}, #{row.sourceId}, #{row.submissionId}, #{actor}, #{actor})
+    </insert>
+
+</mapper>

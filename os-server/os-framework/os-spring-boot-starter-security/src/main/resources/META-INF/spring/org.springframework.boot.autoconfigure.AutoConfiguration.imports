@@ -1,3 +1,0 @@
-com.richuang.os.framework.security.config.OsSecurityAutoConfiguration
-com.richuang.os.framework.security.config.OsWebSecurityConfigurerAdapter
-com.richuang.os.framework.operatelog.config.OsOperateLogConfiguration

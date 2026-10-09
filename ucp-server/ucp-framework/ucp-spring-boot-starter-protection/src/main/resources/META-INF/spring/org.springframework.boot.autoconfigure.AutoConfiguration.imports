@@ -1,0 +1,4 @@
+com.lingan.ucp.framework.idempotent.config.OsIdempotentConfiguration
+com.lingan.ucp.framework.lock4j.config.OsLock4jConfiguration
+com.lingan.ucp.framework.ratelimiter.config.OsRateLimiterConfiguration
+com.lingan.ucp.framework.signature.config.OsApiSignatureAutoConfiguration

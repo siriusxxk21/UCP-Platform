@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lingan.ucp.nocode.metadata.dal.mapper.OrderedCalculationStateMapper">
+    <select id="forObject" resultType="com.lingan.ucp.nocode.metadata.dal.dataobject.OrderedCalculationStateDO" useCache="false" flushCache="true">
+        SELECT * FROM public.nocode_ordered_calculation_state WHERE object_id = #{object} AND deleted = 0 ORDER BY field_id
+    </select>
+    <select id="find" resultType="com.lingan.ucp.nocode.metadata.dal.dataobject.OrderedCalculationStateDO" useCache="false" flushCache="true">
+        SELECT * FROM public.nocode_ordered_calculation_state WHERE object_id = #{object} AND field_id = #{field} AND deleted = 0
+    </select>
+    <insert id="insert">
+        INSERT INTO public.nocode_ordered_calculation_state (object_id, field_id, signature, state, total_rows, creator, updater)
+        VALUES (#{row.objectId}, #{row.fieldId}, #{row.signature}, #{row.state}, #{row.totalRows}, #{row.creator}, #{row.updater})
+    </insert>
+    <update id="update">
+        UPDATE public.nocode_ordered_calculation_state SET state = #{row.state}, cursor_json = CAST(#{row.cursorJson} AS jsonb),
+            total_rows = #{row.totalRows}, updated_rows = #{row.updatedRows}, completed_groups = #{row.completedGroups},
+            error_message = #{row.errorMessage}, lock_version = lock_version + 1,
+            updater = #{row.updater}, update_time = clock_timestamp()
+        WHERE object_id = #{row.objectId} AND field_id = #{row.fieldId} AND signature = #{row.signature}
+            AND lock_version = #{revision} AND deleted = 0
+    </update>
+</mapper>
