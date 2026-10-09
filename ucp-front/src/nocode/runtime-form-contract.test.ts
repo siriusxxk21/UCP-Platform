@@ -14,7 +14,7 @@ const mocks = vi.hoisted(() => ({
   failedUpload: false
 }))
 vi.mock('@/nocode/platform', () => ({
-  nocodePlatformKey: Symbol.for('richuang.nocode.platform'),
+  nocodePlatformKey: Symbol.for('ucp-platform.nocode.platform'),
   useNocodePlatform: () => ({ runtime: mocks, work: { saveDraft: mocks.saveDraft }, applications: {} })
 }))
 vi.mock('@/stores/user', () => ({ useUserStore: () => ({ userInfo: { id: 'form-regression' } }) }))

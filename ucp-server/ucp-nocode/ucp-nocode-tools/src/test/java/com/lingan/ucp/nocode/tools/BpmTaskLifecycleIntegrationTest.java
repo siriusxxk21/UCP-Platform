@@ -551,7 +551,7 @@ class BpmTaskLifecycleIntegrationTest {
                                 + " targetRef=\"work2\"/>");
         String xml =
                 "<definitions xmlns=\"http://www.omg.org/spec/BPMN/20100524/MODEL\""
-                        + " xmlns:business=\"https://richuang.com/schema/bpmn/business-task\""
+                        + " xmlns:business=\"urn:ucp-platform:bpmn:business-task\""
                         + " xmlns:flowable=\"http://flowable.org/bpmn\""
                         + " targetNamespace=\"lifecycle\"><process id=\""
                         + key

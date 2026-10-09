@@ -5,7 +5,7 @@ import type { RuntimeApplication } from '@/types/nocode/runtime'
 export const workEntryKey: InjectionKey<{
   application: Ref<RuntimeApplication | undefined>
   openDraft: (id: string) => void
-}> = Symbol.for('richuang.nocode.work-entry')
+}> = Symbol.for('ucp-platform.nocode.work-entry')
 
 /** 当前前台应用向账号菜单提供草稿入口；随运行页退出清理，避免打开后台应用材料。 */
 export interface ApplicationWorkShelf {

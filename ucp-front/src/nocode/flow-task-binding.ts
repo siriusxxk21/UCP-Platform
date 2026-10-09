@@ -1,5 +1,5 @@
 /** 这里只决定页面入口；任务资格、固定资源和完成凭据由服务端再次校验。 */
-export const BUSINESS_TASK_NAMESPACE = 'https://richuang.com/schema/bpmn/business-task'
+export const BUSINESS_TASK_NAMESPACE = 'urn:ucp-platform:bpmn:business-task'
 const FLOWABLE_NAMESPACE = 'http://flowable.org/bpmn'
 const BPMN_NAMESPACE = 'http://www.omg.org/spec/BPMN/20100524/MODEL'
 const XMLNS_NAMESPACE = 'http://www.w3.org/2000/xmlns/'
@@ -115,7 +115,7 @@ export function businessTaskTemplate(key: string, name: string): string {
   if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(key)) throw new Error('请先填写合法的流程标识（英文字母、数字、下划线）')
   const doc = document.implementation.createDocument(BPMN_NAMESPACE, 'definitions', null)
   const root = doc.documentElement
-  root.setAttribute('targetNamespace', 'https://richuang.com/bpmn')
+  root.setAttribute('targetNamespace', 'urn:ucp-platform:bpmn')
   root.setAttributeNS(XMLNS_NAMESPACE, 'xmlns:flowable', FLOWABLE_NAMESPACE)
   const add = (parent: Element, tag: string, attrs: Record<string, string>) => {
     const element = doc.createElementNS(BPMN_NAMESPACE, tag)

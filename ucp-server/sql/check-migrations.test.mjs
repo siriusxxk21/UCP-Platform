@@ -7,7 +7,7 @@ import { test } from "node:test";
 import { checkMigrations } from "./check-migrations.mjs";
 
 async function fixture(action) {
-  const root = await mkdtemp(join(tmpdir(), "richuang-migration-check-"));
+  const root = await mkdtemp(join(tmpdir(), "ucp-platform-migration-check-"));
   try {
     const folder = join(root, "postgresql/migrations");
     await mkdir(folder, { recursive: true });

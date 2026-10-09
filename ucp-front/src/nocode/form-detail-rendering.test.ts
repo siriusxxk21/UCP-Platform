@@ -15,7 +15,7 @@ import { formLayoutNodes } from './form-detail-layout'
 vi.mock('@/views/nocode/application/components/BusinessFieldControl.vue', () => ({ default: { render: () => null } }))
 vi.mock('@/views/nocode/application/components/HyperlinkField.vue', () => ({ default: { render: () => null } }))
 vi.mock('@/nocode/platform', () => ({
-  nocodePlatformKey: Symbol.for('richuang.nocode.platform'),
+  nocodePlatformKey: Symbol.for('ucp-platform.nocode.platform'),
   useNocodePlatform: () => ({ runtime: {}, applications: {} })
 }))
 

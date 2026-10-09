@@ -2,7 +2,7 @@ import { cloneVNode, inject, isVNode, type ComputedRef, type InjectionKey } from
 import { Form } from 'ant-design-vue'
 
 export const detailFormContainerKey: InjectionKey<ComputedRef<boolean>> = Symbol.for(
-  'richuang.nocode.detail-form-container'
+  'ucp-platform.nocode.detail-form-container'
 )
 type AntdFormSetup = Parameters<NonNullable<typeof Form.setup>>
 

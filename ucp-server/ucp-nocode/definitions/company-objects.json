@@ -8,7 +8,7 @@
       "name": "公司",
       "tableName": "biz_company",
       "titleField": "official_name",
-      "description": "公司基础档案。参考日创 AI OS 公司管理业务字段，按当前工程全局对象规范初始化。",
+      "description": "公司基础档案。参考ucp-platform 公司管理业务字段，按当前工程全局对象规范初始化。",
       "fields": [
         {
           "code": "official_name",
@@ -215,7 +215,7 @@
       "name": "公司财务账号",
       "tableName": "biz_company_financial_account",
       "titleField": "account_name",
-      "description": "公司银行财务账号。参考日创 AI OS 公司银行账户；所属公司由稳定引用保存，账号按文本保存。",
+      "description": "公司银行财务账号。参考ucp-platform 公司银行账户；所属公司由稳定引用保存，账号按文本保存。",
       "fields": [
         {
           "code": "account_name",
@@ -342,7 +342,7 @@
       "name": "公司流水",
       "tableName": "biz_company_transaction",
       "titleField": "summary",
-      "description": "公司账号资金流水。参考日创 AI OS 公司银行流水；归属公司沿所属账号→所属公司关系读取，避免重复保存公司归属。",
+      "description": "公司账号资金流水。参考ucp-platform 公司银行流水；归属公司沿所属账号→所属公司关系读取，避免重复保存公司归属。",
       "fields": [
         {
           "code": "summary",

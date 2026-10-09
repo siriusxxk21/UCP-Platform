@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>页面画布 - 日创 OS 平台</title>
+    <title>页面画布 - UCP 统一开发平台</title>
     <script>
       // 画布是第二层 iframe，加载失败必须先通知编辑器，再由编辑器转发给宿主。
       const report = () => parent.postMessage({ channel: 'os-page-canvas', type: 'ERROR' }, location.origin)

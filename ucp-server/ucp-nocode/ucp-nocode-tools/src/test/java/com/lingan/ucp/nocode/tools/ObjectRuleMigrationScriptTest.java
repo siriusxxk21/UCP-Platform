@@ -39,7 +39,7 @@ class ObjectRuleMigrationScriptTest {
         Files.setPosixFilePermissions(java, PosixFilePermissions.fromString("rwxr-xr-x"));
     }
 
-    /** 脚本位于仓库的 richuang-os/deploy：从当前目录与测试类所在位置逐级向上找，适配 surefire 与 JUnit Console 两种运行方式。 */
+    /** 脚本位于仓库的 deploy：从当前目录与测试类所在位置逐级向上找，适配 surefire 与 JUnit Console 两种运行方式。 */
     private static Path locate() {
         var starts = new ArrayList<Path>();
         starts.add(Path.of("").toAbsolutePath());
@@ -57,8 +57,6 @@ class ObjectRuleMigrationScriptTest {
         for (var start : starts)
             for (var dir = start; dir != null; dir = dir.getParent()) {
                 var candidate = dir.resolve("deploy/object-rule-migration.sh");
-                if (Files.isRegularFile(candidate)) return candidate;
-                candidate = dir.resolve("richuang-os/deploy/object-rule-migration.sh");
                 if (Files.isRegularFile(candidate)) return candidate;
             }
         throw new AssertionError("找不到 deploy/object-rule-migration.sh，起点：" + starts);

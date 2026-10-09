@@ -39,7 +39,7 @@ createApp({
             h(
               'div',
               { style: 'padding:12px 24px;background:#262451;color:white' },
-              '日创 OS 平台 · 工作台 / 表格更新　｜　正式组件 · 模拟接口验证'
+              'UCP 统一开发平台 · 工作台 / 表格更新　｜　正式组件 · 模拟接口验证'
             ),
             h(RecordHistory)
           ])

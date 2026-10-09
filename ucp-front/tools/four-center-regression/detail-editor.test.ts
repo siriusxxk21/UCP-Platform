@@ -10,7 +10,7 @@ const mocks = vi.hoisted(() => ({
   cancel: vi.fn()
 }))
 vi.mock('@/nocode/platform', () => ({
-  nocodePlatformKey: Symbol.for('richuang.nocode.platform'),
+  nocodePlatformKey: Symbol.for('ucp-platform.nocode.platform'),
   useNocodePlatform: () => ({ runtime: mocks })
 }))
 vi.mock('vue-router', () => ({ useRouter: () => ({ push: vi.fn() }) }))

@@ -8,7 +8,7 @@ type RouteLike = Pick<RouteLocationNormalizedLoaded, 'path' | 'fullPath' | 'quer
 
 /** 外层路由出口判断普通页面是否仍在原宿主；切入平台页签时即使应用相同也会销毁普通宿主。 */
 export const plainRouteSurvivalKey: InjectionKey<(to: ActivityRoute) => boolean> = Symbol.for(
-  'richuang.route.plain-survival'
+  'ucp-platform.route.plain-survival'
 )
 
 /** 这个地址是不是应用运行页（动态路由给它补了可选的路径参数）。 */

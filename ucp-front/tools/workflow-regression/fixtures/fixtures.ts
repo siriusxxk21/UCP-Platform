@@ -2,7 +2,7 @@ import { defaultFormNodes } from '@/nocode/form-presentation'
 import type { WorkDraftContext } from '@/types/nocode/work'
 import type { ObjectField } from '@/types/nocode/object'
 
-export const legacyXml = `<?xml version="1.0" encoding="UTF-8"?><definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" targetNamespace="https://richuang.com/bpmn"><process id="company_work" name="公司登记流程" isExecutable="true"><startEvent id="start" name="发起"/><sequenceFlow id="to_work" sourceRef="start" targetRef="business_work"/><userTask id="business_work" name="填写业务资料"/><sequenceFlow id="to_check" sourceRef="business_work" targetRef="check"/><userTask id="check" name="负责人审批"/><sequenceFlow id="to_end" sourceRef="check" targetRef="end"/><endEvent id="end" name="完成"/></process><bpmndi:BPMNDiagram id="Diagram"><bpmndi:BPMNPlane id="Plane" bpmnElement="company_work" /></bpmndi:BPMNDiagram></definitions>`
+export const legacyXml = `<?xml version="1.0" encoding="UTF-8"?><definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" targetNamespace="urn:ucp-platform:bpmn"><process id="company_work" name="公司登记流程" isExecutable="true"><startEvent id="start" name="发起"/><sequenceFlow id="to_work" sourceRef="start" targetRef="business_work"/><userTask id="business_work" name="填写业务资料"/><sequenceFlow id="to_check" sourceRef="business_work" targetRef="check"/><userTask id="check" name="负责人审批"/><sequenceFlow id="to_end" sourceRef="check" targetRef="end"/><endEvent id="end" name="完成"/></process><bpmndi:BPMNDiagram id="Diagram"><bpmndi:BPMNPlane id="Plane" bpmnElement="company_work" /></bpmndi:BPMNDiagram></definitions>`
 export const simpleNode = {
   id: 'start',
   type: 10,
@@ -47,7 +47,7 @@ const values = Object.fromEntries(
   fields.map((field, index) => [
     field.id!,
     index === 0
-      ? '上海日创科技有限公司'
+      ? 'ucp-platform 示例公司'
       : index === 6
         ? '软件开发、技术咨询、信息系统集成服务。'
         : index === 12

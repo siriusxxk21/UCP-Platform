@@ -30,7 +30,7 @@ const foreground: PageActivity = {
   trackUnsaved: () => () => undefined,
   hasUnsaved: () => false
 }
-export const pageActivityKey: InjectionKey<PageActivity> = Symbol.for('richuang.kept-pages.activity')
+export const pageActivityKey: InjectionKey<PageActivity> = Symbol.for('ucp-platform.kept-pages.activity')
 
 export function usePageActivity(): PageActivity {
   return inject(pageActivityKey, foreground)

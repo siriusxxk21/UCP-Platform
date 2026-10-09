@@ -10,4 +10,4 @@ export interface FormDetailRenderer {
   visible: (detailId: string) => boolean
   render: (context: FormDetailContext) => VNode[] | undefined
 }
-export const formDetailKey: InjectionKey<FormDetailRenderer> = Symbol.for('richuang.nocode.form-detail')
+export const formDetailKey: InjectionKey<FormDetailRenderer> = Symbol.for('ucp-platform.nocode.form-detail')

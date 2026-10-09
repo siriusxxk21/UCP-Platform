@@ -130,8 +130,7 @@ async function handleLogin() {
       :style="isCompact ? undefined : { transform: `translate(-50%, -50%) scale(${canvasScale})` }"
     >
       <header class="page-brand">
-        <img src="/logo/richuang.png" alt="日创os" class="logo-icon" />
-        <span>日创os管理平台</span>
+        <span>UCP 统一开发平台</span>
       </header>
 
       <main class="login-stage">
@@ -236,14 +235,6 @@ async function handleLogin() {
   font-size: 24px;
   font-weight: 700;
   line-height: 44px;
-}
-
-.logo-icon {
-  width: 44px;
-  height: 44px;
-  margin-right: 14px;
-  border-radius: 12px;
-  box-shadow: 0 9px 28px rgba(76, 52, 237, 0.32);
 }
 
 .login-stage {
@@ -532,10 +523,6 @@ async function handleLogin() {
     color: white;
     font-size: 20px;
     line-height: 38px;
-  }
-  .design-canvas.is-compact .logo-icon {
-    width: 38px;
-    height: 38px;
   }
   .design-canvas.is-compact .login-stage {
     position: static;

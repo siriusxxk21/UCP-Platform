@@ -107,5 +107,5 @@ export function selectionTree(options: SelectionOption[]) {
 }
 
 export const selectionValuesKey: InjectionKey<Ref<Record<string, unknown>>> = Symbol.for(
-  'richuang.selection.form-values'
+  'ucp-platform.selection.form-values'
 )

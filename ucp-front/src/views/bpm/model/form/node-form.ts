@@ -6,7 +6,7 @@ import {
   type BusinessNodeConfiguration
 } from '@/nocode/flow-task-binding'
 
-export const NODE_FORM_NAMESPACE = 'https://richuang.com/schema/bpmn/node-form'
+export const NODE_FORM_NAMESPACE = 'urn:ucp-platform:bpmn:node-form'
 const BPMN_NAMESPACE = 'http://www.omg.org/spec/BPMN/20100524/MODEL'
 const FLOWABLE_NAMESPACE = 'http://flowable.org/bpmn'
 export type FormSource =

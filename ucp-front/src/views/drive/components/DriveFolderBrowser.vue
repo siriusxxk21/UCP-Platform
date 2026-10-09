@@ -186,7 +186,7 @@ function handlePathChange(path: string) {
   emit('path-change', path)
 }
 
-/** 双击文件默认进组件自带预览，改为打开日创详情抽屉；目录仍按原生行为进入 */
+/** 双击文件默认进组件自带预览，改为打开ucp-platform 详情抽屉；目录仍按原生行为进入 */
 function handleFileDclick(event: ItemDclickEvent) {
   event.preventDefault()
   openDetail(event.item)

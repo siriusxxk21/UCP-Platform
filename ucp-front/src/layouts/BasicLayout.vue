@@ -339,8 +339,7 @@ function handleLogout() {
       </a-button>
       <!-- 左侧：品牌 -->
       <div class="topbar-brand">
-        <img src="/logo/richuang.png" alt="logo" class="topbar-brand-logo">
-        <span class="topbar-brand-name">日创os管理平台</span>
+        <span class="topbar-brand-name">UCP 统一开发平台</span>
       </div>
 
       <!-- 中间：当前项目信息 -->
@@ -602,10 +601,6 @@ button.topbar-icon {
     overflow: hidden;
     text-overflow: ellipsis;
   }
-  .app-layout-dual .topbar-brand-logo {
-    width: 26px;
-    height: 26px;
-  }
   .app-layout-dual .topbar-project {
     display: none;
   }
@@ -659,13 +654,6 @@ button.topbar-icon {
   gap: 8px;
   flex-shrink: 0;
   margin-right: 32px;
-}
-
-.topbar-brand-logo {
-  width: 32px;
-  height: 32px;
-  object-fit: contain;
-  flex-shrink: 0;
 }
 
 .topbar-brand-name {

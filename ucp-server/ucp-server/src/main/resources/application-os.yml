@@ -35,7 +35,7 @@ spring:
   devtools:
     restart:
       enabled: false
-      additional-paths: richuang-module-server/src/main/java
+      additional-paths: ucp-server/src/main/java
       exclude: static/**,public/**,templates/**
     livereload:
       enabled: false
@@ -235,7 +235,7 @@ os:
       topic: ${spring.application.name}-websocket # 消息发送的 Kafka Topic
       consumer-group: ${spring.application.name}-websocket-consumer # 消息发送的 Kafka Consumer Group
   swagger:
-    title: 芋道快速开发平台
+    title: UCP 统一开发平台
     description: 提供管理后台、用户 App 的所有功能
     version: ${yudao.info.version}
     url: ${yudao.web.admin-ui.url}

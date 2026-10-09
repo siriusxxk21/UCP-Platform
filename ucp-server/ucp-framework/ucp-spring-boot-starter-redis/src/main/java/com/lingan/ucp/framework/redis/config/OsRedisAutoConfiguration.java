@@ -4,7 +4,6 @@ import cn.hutool.core.util.ReflectUtil;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import com.lingan.ucp.framework.redis.core.PackageMigrationTypeFactory;
 
 import org.redisson.spring.starter.RedissonAutoConfigurationV2;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
@@ -38,8 +37,6 @@ public class OsRedisAutoConfiguration {
         // 解决 LocalDateTime 的序列化
         ObjectMapper objectMapper = (ObjectMapper) ReflectUtil.getFieldValue(json, "mapper");
         objectMapper.registerModules(new JavaTimeModule());
-        // 包迁移后继续读取携带旧类名的存量缓存；新写入使用当前类名，不改业务字符串。
-        objectMapper.setTypeFactory(new PackageMigrationTypeFactory());
         return json;
     }
 }

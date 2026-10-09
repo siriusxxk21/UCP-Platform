@@ -226,7 +226,7 @@ class BpmBusinessTaskSkipIntegrationTest {
         String expression = skip == null ? "" : " flowable:skipExpression=\"" + skip + "\"";
         return """
 <definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
-  xmlns:flowable="http://flowable.org/bpmn" xmlns:business="https://richuang.com/schema/bpmn/business-task" targetNamespace="skip_guard">
+  xmlns:flowable="http://flowable.org/bpmn" xmlns:business="urn:ucp-platform:bpmn:business-task" targetNamespace="skip_guard">
   <process id="%s" isExecutable="true">
     <startEvent id="start"/><sequenceFlow id="a" sourceRef="start" targetRef="gate"/>
     <userTask id="gate" flowable:assignee="10001"/>

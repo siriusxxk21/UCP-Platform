@@ -1,9 +1,9 @@
 ---
 name: coding-standards
-description: 日创 OS 正式开发工程（ucp-server 后端 Java 21/Spring Boot/MyBatis-Plus，ucp-front 前端 Vue 3/TypeScript/Ant Design Vue）的编码规范、质量门禁与交付检查。新增或修改后端 Java、前端 Vue/TS 代码、SQL 迁移、测试，或做重构、修 bug、代码审查前先读本技能：分层与分包、复用底座、SQL 只放 mapper XML、@Resource 注入、BaseDO、领域枚举与错误码、中文注释、目录命名、OsTablePage/OsModalForm 复用、Flyway VNNN 迁移、格式与检查命令（format.mjs、check-quality.mjs、check:nocode、check-migrations.mjs）。触发词：编码、编码规范、代码规范、Java、Spring、MyBatis、Vue、TypeScript、迁移、格式化、重构、code review。UI 视觉细节另读 frontend-ui-standard。
+description: ucp-platform 正式开发工程（ucp-server 后端 Java 21/Spring Boot/MyBatis-Plus，ucp-front 前端 Vue 3/TypeScript/Ant Design Vue）的编码规范、质量门禁与交付检查。新增或修改后端 Java、前端 Vue/TS 代码、SQL 迁移、测试，或做重构、修 bug、代码审查前先读本技能：分层与分包、复用底座、SQL 只放 mapper XML、@Resource 注入、BaseDO、领域枚举与错误码、中文注释、目录命名、OsTablePage/OsModalForm 复用、Flyway VNNN 迁移、格式与检查命令（format.mjs、check-quality.mjs、check:nocode、check-migrations.mjs）。触发词：编码、编码规范、代码规范、Java、Spring、MyBatis、Vue、TypeScript、迁移、格式化、重构、code review。UI 视觉细节另读 frontend-ui-standard。
 ---
 
-# 日创 OS 编码规范
+# ucp-platform 编码规范
 
 适用 `ucp-server`（后端）与 `ucp-front`（前端）的正式开发。本技能是写代码时的操作摘要；规则全文见 [项目开发约定](references/project-conventions.md)，构建、迁移及检查命令见本技能与配套 references。所有工程路径以仓库根目录为基准。
 

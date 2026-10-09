@@ -14,5 +14,5 @@ export interface InternalDetailDesignerContext {
 }
 
 export const internalDetailDesignerKey: InjectionKey<InternalDetailDesignerContext> = Symbol.for(
-  'richuang.nocode.internal-detail-designer'
+  'ucp-platform.nocode.internal-detail-designer'
 )

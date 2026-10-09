@@ -156,7 +156,7 @@ describe('两类设计器共同表单规则', () => {
     expect(
       parseProcess(next)
         .getElementsByTagNameNS('*', 'userTask')[0]
-        ?.getAttributeNS('https://richuang.com/schema/bpmn/business-task', 'handler')
+        ?.getAttributeNS('urn:ucp-platform:bpmn:business-task', 'handler')
     ).toBeNull()
   })
   it('损坏绑定和未知旧办理来源不能被默认继承覆盖', () => {

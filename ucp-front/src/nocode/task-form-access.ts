@@ -27,7 +27,7 @@ export interface TaskFormAccess {
     query: Parameters<RuntimeApi['evaluateFieldRules']>[0]
   ) => ReturnType<RuntimeApi['evaluateFieldRules']>
 }
-export const taskFormAccessKey: InjectionKey<TaskFormAccess> = Symbol.for('richuang.nocode.task-form-access')
+export const taskFormAccessKey: InjectionKey<TaskFormAccess> = Symbol.for('ucp-platform.nocode.task-form-access')
 
 /** 文件能力限定到任务主办理表单；不自动授予网盘浏览、目录或收藏权限。 */
 export function taskFormFiles(

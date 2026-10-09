@@ -8,4 +8,4 @@ export const taskEntrySessionKey: InjectionKey<{
   saveDraft: (record: SaveRecord) => Promise<WorkDraft>
   loadDraft: () => Promise<WorkDraft | null>
   checkDraft: () => Promise<WorkDraft | null>
-}> = Symbol.for('richuang.nocode.task-entry-session')
+}> = Symbol.for('ucp-platform.nocode.task-entry-session')

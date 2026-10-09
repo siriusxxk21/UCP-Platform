@@ -8,7 +8,7 @@ const fields = [
   { id: 'amount', name: '登记金额' },
   { id: 'contact', name: '联系人' }
 ]
-const base = { name: '日创科技', amount: '120000.00', contact: '王敏' }
+const base = { name: 'ucp-platform 科技', amount: '120000.00', contact: '王敏' }
 const change = (id, time, employeeId, before, after, operation = 'UPDATE') => ({
   id,
   time,

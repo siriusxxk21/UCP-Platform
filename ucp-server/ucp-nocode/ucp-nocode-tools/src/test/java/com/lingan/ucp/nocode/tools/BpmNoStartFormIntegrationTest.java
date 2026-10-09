@@ -235,7 +235,7 @@ class BpmNoStartFormIntegrationTest {
         String xml =
                 """
 <definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:flowable="http://flowable.org/bpmn"
- xmlns:node="https://richuang.com/schema/bpmn/node-form" targetNamespace="no-start-form-test">
+ xmlns:node="urn:ucp-platform:bpmn:node-form" targetNamespace="no-start-form-test">
  <process id="%s" name="无需发起表单回归" isExecutable="true">
   <startEvent id="start"/><sequenceFlow id="a" sourceRef="start" targetRef="work"/>
   <userTask id="work" name="独立人工节点" flowable:assignee="10001"%s/>
